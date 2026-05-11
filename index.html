@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Jerusalem Jewelry Tracker</title>
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: 'DM Sans', 'Avenir', 'Helvetica Neue', -apple-system, sans-serif;
+    background: #F1F3F7;
+    color: #0f172a;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page { display: flex; flex-direction: column; height: 100vh; padding: 20px; gap: 16px; }
+
+  /* header */
+  .header { display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+  .header-title { font-size: 12px; font-weight: 700; color: #94a3b8; letter-spacing: 2px; text-transform: uppercase; }
+  .header-right { display: flex; gap: 8px; align-items: center; }
+  .last-update { font-size: 11px; color: #94a3b8; }
+  .icon-btn {
+    background: #fff; border: none; border-radius: 10px; padding: 8px 14px;
+    font-size: 13px; font-weight: 600; color: #64748b; cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06);
+  }
+
+  /* grid */
+  .grid { flex: 1; display: grid; grid-template-columns: 35% 1fr; gap: 16px; min-height: 0; }
+  .left-col { display: flex; flex-direction: column; gap: 16px; min-height: 0; }
+
+  /* price card */
+  .price-card {
+    position: relative; overflow: hidden;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    border-radius: 20px; padding: 24px 28px; flex-shrink: 0;
+  }
+  .price-card-bg {
+    position: absolute; right: -10px; bottom: -40px;
+    font-size: 160px; font-weight: 900; color: rgba(255,255,255,.04);
+    line-height: 1; user-select: none; pointer-events: none;
+  }
+  .price-card-inner { position: relative; z-index: 1; }
+  .price-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .price-label { color: #fbbf24; font-weight: 700; font-size: 11px; letter-spacing: 1.5px; }
+  .market-badge {
+    font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 6px;
+  }
+  .market-open { background: rgba(74,222,128,.15); color: #4ade80; }
+  .market-closed { background: rgba(248,113,113,.15); color: #f87171; }
+  .big-price-row { display: flex; align-items: baseline; gap: 8px; }
+  .big-price { font-size: 52px; font-weight: 800; color: #fff; line-height: 1.1; letter-spacing: -1px; }
+  .oz-unit { font-size: 18px; color: rgba(255,255,255,.4); }
+  .gram-row { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+  .gram-price { font-size: 20px; font-weight: 700; color: #fcd34d; }
+  .gram-unit { font-size: 13px; font-weight: 600; color: rgba(251,191,36,.6); }
+
+  /* chart */
+  .chart-card {
+    flex: 1; background: #fff; border-radius: 20px; padding: 16px;
+    display: flex; flex-direction: column; min-height: 0;
+    box-shadow: 0 2px 12px rgba(15,23,42,.04);
+  }
+  .chart-card canvas { flex: 1; min-height: 0; }
+  .section-label { font-size: 10px; font-weight: 700; color: #94a3b8; letter-spacing: 1.5px; margin-bottom: 8px; display: block; }
+
+  /* rates */
+  .rates-card {
+    background: #fff; border-radius: 20px; display: flex; flex-direction: column;
+    overflow: hidden; box-shadow: 0 2px 12px rgba(15,23,42,.04);
+  }
+  .rates-header { padding: 16px 24px; border-bottom: 2px solid #f1f5f9; }
+  .rates-title { font-size: 17px; font-weight: 900; color: #0f172a; }
+  .rates-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding: 16px 24px 24px; flex: 1; overflow: auto; -webkit-overflow-scrolling: touch; }
+  .rate-col { display: flex; flex-direction: column; gap: 4px; }
+
+  .sell-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 0; border-bottom: 1px solid #f1f5f9;
+  }
+  .item-left { display: flex; align-items: center; gap: 8px; }
+  .item-name { font-size: 15px; font-weight: 700; color: #1e293b; }
+  .item-price { font-size: 15px; font-weight: 700; color: #0f172a; }
+  .badge-gold {
+    background: #fffbeb; color: #d97706; border: 1px solid #fcd34d;
+    border-radius: 6px; padding: 2px 7px; font-size: 10px; font-weight: 900;
+  }
+  .buy-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 14px; background: #f8fafc; border-radius: 10px;
+    border: 1px solid #e2e8f0; margin-bottom: 2px;
+  }
+  .buy-price { font-size: 15px; font-weight: 700; color: #059669; }
+  .badge-emerald {
+    background: #ecfdf5; color: #059669; border: 1px solid #6ee7b7;
+    border-radius: 6px; padding: 2px 7px; font-size: 10px; font-weight: 900;
+  }
+
+  /* modal */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(15,23,42,.45);
+    backdrop-filter: blur(4px); display: flex; justify-content: center;
+    align-items: center; z-index: 999; display: none;
+  }
+  .overlay.open { display: flex; }
+  .modal {
+    background: #fff; border-radius: 16px; padding: 28px; width: 90%;
+    max-width: 440px; max-height: 80vh; overflow-y: auto;
+    -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; gap: 12px;
+  }
+  .modal-header { display: flex; justify-content: space-between; align-items: center; }
+  .modal-title { font-size: 18px; font-weight: 900; }
+  .close-btn { background: none; border: none; font-size: 18px; color: #94a3b8; cursor: pointer; }
+  .field-label { font-size: 10px; font-weight: 700; color: #64748b; letter-spacing: 1px; margin-top: 4px; }
+  .field-select, .field-input {
+    width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0;
+    background: #f8fafc; font-size: 14px; color: #0f172a;
+    -webkit-appearance: none; font-family: inherit;
+  }
+  .toggle-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0;
+  }
+  .toggle-title { font-weight: 700; font-size: 13px; }
+  .toggle-desc { color: #64748b; font-size: 11px; }
+  .toggle-btn {
+    border: none; border-radius: 20px; padding: 5px 14px; font-weight: 700;
+    font-size: 12px; cursor: pointer; min-width: 50px;
+  }
+  .test-btn {
+    width: 100%; padding: 11px; background: #f1f5f9; border: none; border-radius: 8px;
+    font-weight: 700; color: #475569; font-size: 13px; cursor: pointer; font-family: inherit;
+  }
+  .debug-box {
+    background: #0f172a; padding: 10px; border-radius: 8px; font-size: 11px;
+    font-family: monospace; white-space: pre-wrap; max-height: 100px; overflow: auto;
+    display: none;
+  }
+  .save-btn {
+    width: 100%; padding: 13px; background: #0f172a; color: #fff; border: none;
+    border-radius: 10px; font-weight: 700; font-size: 14px; cursor: pointer; font-family: inherit;
+  }
+
+  /* iPad responsive tweaks */
+  @media (max-width: 1024px) {
+    .grid { grid-template-columns: 1fr; }
+    .page { padding: 14px; gap: 12px; overflow-y: auto; }
+    html, body { overflow: auto; }
+    .big-price { font-size: 42px; }
+    .price-card { padding: 20px; }
+    .rates-cols { gap: 16px; }
+  }
+  @media (max-width: 600px) {
+    .rates-cols { grid-template-columns: 1fr; }
+    .big-price { font-size: 36px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <!-- HEADER -->
+  <div class="header">
+    <span class="header-title">Jerusalem Jewelry Tracker</span>
+    <div class="header-right">
+      <span class="last-update" id="lastUpdate"></span>
+      <button class="icon-btn" onclick="refresh()">⟳</button>
+      <button class="icon-btn" onclick="openSettings()">⚙ Settings</button>
+    </div>
+  </div>
+
+  <!-- GRID -->
+  <div class="grid">
+    <div class="left-col">
+      <!-- PRICE CARD -->
+      <div class="price-card">
+        <div class="price-card-bg">$</div>
+        <div class="price-card-inner">
+          <div class="price-top">
+            <span class="price-label">LIVE GOLD PRICE</span>
+            <span class="market-badge market-open" id="marketBadge">MARKET: OPEN</span>
+          </div>
+          <div class="big-price-row">
+            <span class="big-price" id="bigPrice">$2,740</span>
+            <span class="oz-unit">/ oz</span>
+          </div>
+          <div class="gram-row">
+            <span class="gram-price" id="gramPrice">$77.42</span>
+            <span class="gram-unit">/ G (21K)</span>
+          </div>
+        </div>
+      </div>
+      <!-- CHART -->
+      <div class="chart-card">
+        <span class="section-label">TODAY'S TREND</span>
+        <canvas id="chart"></canvas>
+      </div>
+    </div>
+
+    <!-- RATES -->
+    <div class="rates-card">
+      <div class="rates-header"><span class="rates-title">MARKET RATES</span></div>
+      <div class="rates-cols">
+        <div class="rate-col">
+          <span class="section-label">SELL</span>
+          <div id="sellList"></div>
+        </div>
+        <div class="rate-col">
+          <span class="section-label">BUY (SCRAP)</span>
+          <div id="buyList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Admin Settings</span>
+      <button class="close-btn" onclick="closeSettings()">✕</button>
+    </div>
+    <label class="field-label">DATA SOURCE</label>
+    <select class="field-select" id="srcSelect" onchange="onSourceChange()">
+      <option value="free">Free</option>
+      <option value="pro">Pro (API Key)</option>
+      <option value="demo">Demo (Random)</option>
+    </select>
+    <div id="apiKeyGroup" style="display:none">
+      <label class="field-label">API KEY</label>
+      <input class="field-input" type="password" id="apiKeyInput" placeholder="Hardcoded key active if left blank">
+    </div>
+    <div class="toggle-row">
+      <div><div class="toggle-title">Manual Price Override</div><div class="toggle-desc">Disable live feed completely</div></div>
+      <button class="toggle-btn" id="manualToggle" onclick="toggleManual()" style="background:#e2e8f0;color:#64748b">OFF</button>
+    </div>
+    <input class="field-input" type="number" id="manualInput" placeholder="Enter custom price ($)" style="display:none" oninput="onManualInput()">
+    <label class="field-label">POLL INTERVAL (seconds)</label>
+    <input class="field-input" type="number" id="pollInput" value="10" min="5" max="300">
+    <button class="test-btn" onclick="testConn()">Test Connection</button>
+    <pre class="debug-box" id="debugBox"></pre>
+    <button class="save-btn" onclick="saveSettings()">Save & Close</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+// ── State ──────────────────────────────────────────────
+const HARDCODED_KEY = "";
+let price = 2740;
+let chartData = { labels: [], values: [] };
+let marketOpen = true;
+let lastPrice = null;
+let unchangedCount = 0;
+let lastMinute = "";
+let pollTimer = null;
+
+let settings = {
+  dataSource: "free",
+  apiKey: "",
+  manual: false,
+  pollInterval: 10,
+};
+
+// Load settings from localStorage
+try {
+  const saved = localStorage.getItem("jjtrader_settings");
+  if (saved) settings = { ...settings, ...JSON.parse(saved) };
+} catch(e) {}
+
+let chart;
+
+// ── Init ───────────────────────────────────────────────
+window.addEventListener("DOMContentLoaded", () => {
+  initChart();
+  seedChart();
+  updateUI();
+  startPolling();
+});
+
+function initChart() {
+  const ctx = document.getElementById("chart").getContext("2d");
+  chart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: chartData.labels,
+      datasets: [{
+        data: chartData.values,
+        borderColor: "#f59e0b",
+        borderWidth: 2.5,
+        fill: true,
+        backgroundColor: (ctx) => {
+          const g = ctx.chart.ctx.createLinearGradient(0, 0, 0, ctx.chart.height);
+          g.addColorStop(0, "rgba(245,158,11,.3)");
+          g.addColorStop(1, "rgba(245,158,11,0)");
+          return g;
+        },
+        tension: 0.3,
+        pointRadius: 0,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: "#94a3b8", font: { size: 10 } }, grid: { display: false } },
+        y: {
+          ticks: { color: "#94a3b8", font: { size: 10 }, callback: v => "$" + v },
+          grid: { color: "rgba(148,163,184,.12)" },
+        },
+      },
+      interaction: { intersect: false, mode: "index" },
+    },
+  });
+}
+
+function seedChart() {
+  const h = new Date().getHours();
+  let p = price;
+  for (let i = 0; i <= h; i++) {
+    p += (Math.random() - 0.5) * 8;
+    chartData.labels.push(pad(i) + ":00");
+    chartData.values.push(Math.round(p * 100) / 100);
+  }
+  chart.update("none");
+}
+
+// ── Formatting ─────────────────────────────────────────
+function fmt(v, d = 0) {
+  return "$" + v.toFixed(d).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+function pad(n) { return String(n).padStart(2, "0"); }
+function roundSell(v) { return Math.round(v / 5) * 5; }
+function roundBuy(v) { return Math.floor(v / 2) * 2; }
+
+// ── Calculations ───────────────────────────────────────
+function calcSell(x) {
+  const y = (x + 15) * 32.15, z = x + 150;
+  const lira21 = ((y * 0.88 / 1000) + 1) * 8 + 20;
+  return [
+    { name: "Lira", k: "21K", p: roundSell(lira21), buy: false },
+    { name: "Lira", k: "22K", p: roundSell(x * 0.2354 + 70), buy: false },
+    { name: "Ounce", k: "24K", p: roundSell(z), buy: false },
+    { name: "Makhamsia", k: "21K", p: roundSell(lira21 * 5 + 50), buy: false },
+    { name: "Rashady", k: "21K", p: roundSell((lira21 / 8) * 7 + 5), buy: false },
+    { name: "50 Pesos", k: "21.6K", p: roundSell(x * 1.2057 * 1.026 + 120), buy: false },
+    { name: "Khairy", k: "21K", p: roundSell(((x * 32.15 * 0.88) / 1000) * 1.3), buy: false },
+  ];
+}
+
+function calcBuy(x) {
+  const g = x / 31.1;
+  return [
+    { name: "22k", k: "22K", p: roundBuy(g * 0.90 - 12) },
+    { name: "21k", k: "21K", p: roundBuy(g * 0.87 - 12) },
+    { name: "18k", k: "18K", p: roundBuy(g * 0.74 - 12) },
+    { name: "14k", k: "14K", p: roundBuy(g * 0.58 - 12) },
+    { name: "10k", k: "10K", p: roundBuy(g * 0.41 - 12) },
+  ];
+}
+
+// ── UI Update ──────────────────────────────────────────
+function updateUI() {
+  document.getElementById("bigPrice").textContent = fmt(price);
+  const gram = (price * 32.15 * 0.88) / 1000;
+  document.getElementById("gramPrice").textContent = fmt(gram, 2);
+
+  const badge = document.getElementById("marketBadge");
+  badge.textContent = "MARKET: " + (marketOpen ? "OPEN" : "CLOSED");
+  badge.className = "market-badge " + (marketOpen ? "market-open" : "market-closed");
+
+  // Sell
+  const sellHTML = calcSell(price).map(i =>
+    `<div class="sell-row"><div class="item-left"><span class="item-name">${i.name}</span><span class="badge-gold">${i.k}</span></div><span class="item-price">${fmt(i.p)}</span></div>`
+  ).join("");
+  document.getElementById("sellList").innerHTML = sellHTML;
+
+  // Buy
+  const buyHTML = calcBuy(price).map(i =>
+    `<div class="buy-row"><div class="item-left"><span class="item-name">${i.name}</span><span class="badge-emerald">${i.k}</span></div><span class="buy-price">${fmt(i.p)}</span></div>`
+  ).join("");
+  document.getElementById("buyList").innerHTML = buyHTML;
+
+  // Chart tick
+  const now = new Date();
+  const min = pad(now.getHours()) + ":" + pad(now.getMinutes());
+  if (min !== lastMinute) {
+    chartData.labels.push(min);
+    chartData.values.push(price);
+    lastMinute = min;
+  } else if (chartData.values.length) {
+    chartData.values[chartData.values.length - 1] = price;
+  }
+  chart.update("none");
+}
+
+// ── Fetch ──────────────────────────────────────────────
+async function fetchPrice() {
+  if (settings.manual) return;
+  if (settings.dataSource === "demo") {
+    price = Math.max(0, price + (Math.random() - 0.5) * 1.5);
+    document.getElementById("lastUpdate").textContent = "Updated " + new Date().toLocaleTimeString();
+    updateUI();
+    return;
+  }
+  try {
+    const h = { "Content-Type": "application/json" };
+    if (settings.dataSource === "pro") h["x-api-key"] = settings.apiKey || HARDCODED_KEY;
+    const res = await fetch("https://api.gold-api.com/price/XAU", { headers: h });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    if (data.price) {
+      const p = Number(data.price);
+      if (p === lastPrice) {
+        unchangedCount++;
+        if (unchangedCount >= 6) { marketOpen = false; restartPolling(60); }
+      } else {
+        unchangedCount = 0;
+        if (!marketOpen) { marketOpen = true; restartPolling(settings.pollInterval); }
+      }
+      lastPrice = p;
+      price = p;
+      document.getElementById("lastUpdate").textContent = "Updated " + new Date().toLocaleTimeString();
+      updateUI();
+    }
+  } catch (e) {
+    console.error("Fetch failed:", e.message);
+  }
+}
+
+function startPolling() {
+  clearInterval(pollTimer);
+  fetchPrice();
+  pollTimer = setInterval(fetchPrice, settings.pollInterval * 1000);
+}
+function restartPolling(sec) {
+  clearInterval(pollTimer);
+  pollTimer = setInterval(fetchPrice, sec * 1000);
+}
+function refresh() { fetchPrice(); }
+
+// ── Settings ───────────────────────────────────────────
+function openSettings() {
+  document.getElementById("overlay").classList.add("open");
+  document.getElementById("srcSelect").value = settings.dataSource;
+  document.getElementById("apiKeyInput").value = settings.apiKey;
+  document.getElementById("pollInput").value = settings.pollInterval;
+  onSourceChange();
+  const mt = document.getElementById("manualToggle");
+  mt.textContent = settings.manual ? "ON" : "OFF";
+  mt.style.background = settings.manual ? "#0f172a" : "#e2e8f0";
+  mt.style.color = settings.manual ? "#fff" : "#64748b";
+  document.getElementById("manualInput").style.display = settings.manual ? "block" : "none";
+}
+function closeSettings() { document.getElementById("overlay").classList.remove("open"); }
+function onSourceChange() {
+  const v = document.getElementById("srcSelect").value;
+  document.getElementById("apiKeyGroup").style.display = v === "pro" ? "block" : "none";
+}
+function toggleManual() {
+  settings.manual = !settings.manual;
+  const mt = document.getElementById("manualToggle");
+  mt.textContent = settings.manual ? "ON" : "OFF";
+  mt.style.background = settings.manual ? "#0f172a" : "#e2e8f0";
+  mt.style.color = settings.manual ? "#fff" : "#64748b";
+  document.getElementById("manualInput").style.display = settings.manual ? "block" : "none";
+}
+function onManualInput() {
+  const v = parseFloat(document.getElementById("manualInput").value);
+  if (!isNaN(v) && v > 0) { price = v; updateUI(); }
+}
+function saveSettings() {
+  settings.dataSource = document.getElementById("srcSelect").value;
+  settings.apiKey = document.getElementById("apiKeyInput").value;
+  settings.pollInterval = Math.max(5, parseInt(document.getElementById("pollInput").value) || 10);
+  try { localStorage.setItem("jjtrader_settings", JSON.stringify(settings)); } catch(e) {}
+  closeSettings();
+  startPolling();
+}
+async function testConn() {
+  const box = document.getElementById("debugBox");
+  box.style.display = "block";
+  box.style.color = "#94a3b8";
+  box.textContent = "Testing...";
+  try {
+    const h = { "Content-Type": "application/json" };
+    const src = document.getElementById("srcSelect").value;
+    if (src === "pro") h["x-api-key"] = document.getElementById("apiKeyInput").value || HARDCODED_KEY;
+    const res = await fetch("https://api.gold-api.com/price/XAU", { headers: h });
+    const body = await res.text();
+    box.style.color = res.ok ? "#22c55e" : "#ef4444";
+    box.textContent = (res.ok ? "SUCCESS" : "FAILED") + " (" + res.status + ")\n" + body.slice(0, 300);
+  } catch (e) {
+    box.style.color = "#ef4444";
+    box.textContent = "CONNECTION ERROR:\n" + e.message;
+  }
+}
+</script>
+</body>
+</html>
