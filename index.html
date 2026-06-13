@@ -314,7 +314,7 @@
         <div class="silver-pills">
           <div class="s-pill s-sell">
             <div class="s-pill-label">SELL</div>
-            <div class="s-pill-val" id="silverSell">$60.00</div>
+            <div class="s-pill-val" id="silverSell">$59.00</div>
           </div>
           <div class="s-pill s-buy">
             <div class="s-pill-label">BUY</div>
@@ -326,7 +326,7 @@
       <!-- CHART -->
       <div class="chart-card">
         <div class="chart-head">
-          <span class="section-label">3-DAY TREND</span>
+          <span class="section-label">7-DAY TREND</span>
           <div class="metal-toggle">
             <button class="metal-btn active" data-metal="XAU" onclick="setMetal('XAU')">GOLD</button>
             <button class="metal-btn" data-metal="XAG" onclick="setMetal('XAG')">SILVER</button>
@@ -361,15 +361,10 @@
       <button class="close-btn" onclick="closeSettings()">✕</button>
     </div>
     <label class="field-label">DATA SOURCE</label>
-    <select class="field-select" id="srcSelect" onchange="onSourceChange()">
-      <option value="free">Free</option>
-      <option value="pro">Pro (API Key)</option>
+    <select class="field-select" id="srcSelect">
+      <option value="live">Live</option>
       <option value="demo">Demo (Random)</option>
     </select>
-    <div id="apiKeyGroup" style="display:none">
-      <label class="field-label">API KEY</label>
-      <input class="field-input" type="password" id="apiKeyInput" placeholder="Hardcoded key active if left blank">
-    </div>
     <div class="toggle-row">
       <div><div class="toggle-title">Manual Price Override</div><div class="toggle-desc">Disable live feed completely</div></div>
       <button class="toggle-btn" id="manualToggle" onclick="toggleManual()">OFF</button>
@@ -391,13 +386,30 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
 // ── State ──────────────────────────────────────────────
-const HARDCODED_KEY = "5638f52f37bcfa0a06b3a422c1f5fdb3d9042a6da250d1157a85a4ae2aafe62c";
+// Obfuscated API key (XOR + Base64), assembled at runtime.
+// NOTE: client-side obfuscation is NOT security. The decoded key is still
+// recoverable by anyone who opens devtools or inspects the network request —
+// it only keeps the raw key out of plain sight in the source. For real
+// protection the key must live behind a server-side proxy, never in the client.
+function _dk(b64, salt) {
+  const raw = atob(b64);
+  let out = "";
+  for (let i = 0; i < raw.length; i++) {
+    out += String.fromCharCode(raw.charCodeAt(i) ^ salt.charCodeAt(i % salt.length));
+  }
+  return out;
+}
+const HARDCODED_KEY = _dk(
+  "fk4KVTBFACpCABU5LRkJDGZGUH8QA0VoKElfWDAUUH8V" +
+  "DkdueRkPCTdCB3wVBkZvfBkBWDdEUylDVhY8Lk4LDg==",
+  "Kx9mVp2Lq7wZ"
+);
+function apiKey() { return HARDCODED_KEY; }
+
 const GOLD_LINE = "#f59e0b";
 const SILVER_LINE = "#64748b";
-const HIST_WINDOW_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
-const HIST_CACHE_TTL = 60 * 60 * 1000;          // cache history 1h (free tier = 10 req/hr)
-
-function apiKey() { return settings.apiKey || HARDCODED_KEY; }
+const HIST_WINDOW_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+const HIST_CACHE_TTL = 60 * 60 * 1000;          // cache history 1h (stays under rate limits)
 
 let prices = { XAU: 4220, XAG: 50 };
 let currentMetal = "XAU";
@@ -408,10 +420,10 @@ let unchangedCount = 0;
 let pollTimer = null;
 let chartTimer = null;
 let chart;
+let chartPts = [];   // [ts, price] currently plotted (for tooltip time labels)
 
 let settings = {
-  dataSource: "free",
-  apiKey: "",
+  dataSource: "live",
   manual: false,
   pollInterval: 10,
   dark: false,
@@ -422,6 +434,8 @@ try {
   const saved = localStorage.getItem("jjtrader_settings");
   if (saved) settings = { ...settings, ...JSON.parse(saved) };
 } catch (e) {}
+delete settings.apiKey;                                   // key is hardcoded now
+if (settings.dataSource !== "demo") settings.dataSource = "live"; // migrate free/pro
 
 // ── Init ───────────────────────────────────────────────
 window.addEventListener("DOMContentLoaded", () => {
@@ -459,10 +473,22 @@ function initChart() {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: (items) => {
+              if (!items.length) return "";
+              const p = chartPts[items[0].dataIndex];
+              return p && p[0] != null ? fmtFull(p[0]) : (items[0].label || "");
+            },
+            label: (item) => "$" + Number(item.parsed.y).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+          },
+        },
+      },
       scales: {
         x: {
-          ticks: { color: c.tick, font: { size: 10 }, maxTicksLimit: 6, maxRotation: 0, autoSkip: true },
+          ticks: { color: c.tick, font: { size: 10 }, maxTicksLimit: 8, maxRotation: 0, autoSkip: true },
           grid: { display: false },
         },
         y: {
@@ -507,9 +533,10 @@ async function buildChart(metal) {
   if (!pts || pts.length < 2) {
     const cur = prices[metal];
     pts = [];
-    for (let i = 3; i >= 0; i--) pts.push([now - i * 86400000, cur]);
+    for (let i = 7; i >= 0; i--) pts.push([now - i * 86400000, cur]);
   }
 
+  pts = downsampleTo(pts, 2); // 2-hour increments visible on hover
   renderChartSeries(metal, pts);
 }
 
@@ -517,19 +544,23 @@ async function fetchApiHistory(sym) {
   const key = apiKey();
   if (!key) return null;                          // /history requires a key
   const end = Math.floor(Date.now() / 1000);      // Unix seconds
-  const start = end - 3 * 24 * 60 * 60;           // 3 days back
-  const url = `https://api.gold-api.com/history?symbol=${sym}`
-            + `&startTimestamp=${start}&endTimestamp=${end}`
-            + `&groupBy=day&aggregation=avg&orderBy=asc`;
-  try {
-    const res = await fetch(url, { headers: { "x-api-key": key } });
-    if (!res.ok) return null;
-    const data = await res.json();
-    const pts = normalizeHistory(data);
-    return pts.length ? pts : null;
-  } catch (e) {
-    return null;
+  const start = end - 7 * 24 * 60 * 60;           // 7 days back
+  // Prefer hourly buckets (premium) so hovering shows intra-day detail; fall
+  // back to daily if hourly isn't available on the current plan.
+  for (const groupBy of ["hour", "day"]) {
+    const url = `https://api.gold-api.com/history?symbol=${sym}`
+              + `&startTimestamp=${start}&endTimestamp=${end}`
+              + `&groupBy=${groupBy}&aggregation=avg&orderBy=asc`;
+    try {
+      const res = await fetch(url, { headers: { "x-api-key": key } });
+      if (!res.ok) continue;
+      const data = await res.json();
+      const pts = normalizeHistory(data);
+      // Hourly is only useful with real timestamps; otherwise try daily.
+      if (pts.length && (groupBy === "day" || pts.some(p => p[0] != null))) return pts;
+    } catch (e) { /* try next grouping */ }
   }
+  return null;
 }
 
 // Response is an array of buckets, each with a period field (day/month/...) and
@@ -571,6 +602,23 @@ function parseTimeField(item) {
   return isFinite(parsed) ? parsed : null;
 }
 
+// Collapse points into fixed-width time bins (averaging), e.g. 2-hour buckets.
+// Daily-spaced data passes through unchanged (one point per bin).
+function downsampleTo(pts, hours) {
+  if (hours <= 1) return pts;
+  const withTs = pts.filter(p => p[0] != null && isFinite(p[1]));
+  if (withTs.length < 2) return pts;               // no usable timestamps
+  const binMs = hours * 3600 * 1000;
+  const bins = new Map();
+  for (const [ts, price] of withTs) {
+    const bin = Math.floor(ts / binMs) * binMs;
+    const e = bins.get(bin);
+    if (e) { e.sum += price; e.n++; }
+    else bins.set(bin, { sum: price, n: 1 });
+  }
+  return [...bins.entries()].sort((a, b) => a[0] - b[0]).map(([ts, e]) => [ts, e.sum / e.n]);
+}
+
 // ── History cache (protects the 10 req/hr free limit) ──
 function histCacheKey(sym) { return "jjtrader_histcache_" + sym; }
 function loadHistCache(sym) {
@@ -585,6 +633,7 @@ function saveHistCache(sym, pts) {
 }
 
 function renderChartSeries(metal, pts) {
+  chartPts = pts;
   currentLineColor = metal === "XAG" ? SILVER_LINE : GOLD_LINE;
   const anyTs = pts.some(p => p[0] != null);
   let labels;
@@ -643,6 +692,10 @@ function fmtTick(ts) {
   const d = new Date(ts);
   return (d.getMonth() + 1) + "/" + d.getDate();
 }
+function fmtFull(ts) {
+  const d = new Date(ts);
+  return (d.getMonth() + 1) + "/" + d.getDate() + ", " + pad(d.getHours()) + ":00";
+}
 function hexToRgba(hex, a) {
   const m = hex.replace("#", "");
   const r = parseInt(m.substring(0, 2), 16);
@@ -690,9 +743,9 @@ function updateUI() {
   badge.textContent = "MARKET: " + (marketOpen ? "OPEN" : "CLOSED");
   badge.className = "market-badge " + (marketOpen ? "market-open" : "market-closed");
 
-  // Silver: sell = spot + $10, buy = spot - $2
+  // Silver: sell = spot + $9, buy = spot - $2
   document.getElementById("silverPrice").textContent = fmt(prices.XAG, 2);
-  document.getElementById("silverSell").textContent = fmt(prices.XAG + 10, 2);
+  document.getElementById("silverSell").textContent = fmt(prices.XAG + 9, 2);
   document.getElementById("silverBuy").textContent = fmt(prices.XAG - 2, 2);
 
   // Sell (gold)
@@ -750,8 +803,7 @@ async function fetchPrices() {
 }
 
 async function fetchOne(sym) {
-  const h = { "Content-Type": "application/json" };
-  if (settings.dataSource === "pro") h["x-api-key"] = settings.apiKey || HARDCODED_KEY;
+  const h = { "Content-Type": "application/json", "x-api-key": apiKey() };
   const res = await fetch(`https://api.gold-api.com/price/${sym}`, { headers: h });
   if (!res.ok) throw new Error("HTTP " + res.status);
   const data = await res.json();
@@ -805,18 +857,12 @@ function syncDarkToggle() {
 function openSettings() {
   document.getElementById("overlay").classList.add("open");
   document.getElementById("srcSelect").value = settings.dataSource;
-  document.getElementById("apiKeyInput").value = settings.apiKey;
   document.getElementById("pollInput").value = settings.pollInterval;
-  onSourceChange();
   syncManualToggle();
   syncDarkToggle();
   document.getElementById("manualInput").style.display = settings.manual ? "block" : "none";
 }
 function closeSettings() { document.getElementById("overlay").classList.remove("open"); }
-function onSourceChange() {
-  const v = document.getElementById("srcSelect").value;
-  document.getElementById("apiKeyGroup").style.display = v === "pro" ? "block" : "none";
-}
 function toggleManual() {
   settings.manual = !settings.manual;
   syncManualToggle();
@@ -833,7 +879,6 @@ function onManualInput() {
 }
 function saveSettings() {
   settings.dataSource = document.getElementById("srcSelect").value;
-  settings.apiKey = document.getElementById("apiKeyInput").value;
   settings.pollInterval = Math.max(5, parseInt(document.getElementById("pollInput").value) || 10);
   try { localStorage.setItem("jjtrader_settings", JSON.stringify(settings)); } catch (e) {}
   closeSettings();
@@ -845,9 +890,7 @@ async function testConn() {
   box.style.color = "#94a3b8";
   box.textContent = "Testing...";
   try {
-    const h = { "Content-Type": "application/json" };
-    const src = document.getElementById("srcSelect").value;
-    if (src === "pro") h["x-api-key"] = document.getElementById("apiKeyInput").value || HARDCODED_KEY;
+    const h = { "Content-Type": "application/json", "x-api-key": apiKey() };
     const res = await fetch("https://api.gold-api.com/price/XAU", { headers: h });
     const body = await res.text();
     box.style.color = res.ok ? "#22c55e" : "#ef4444";
