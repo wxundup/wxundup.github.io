@@ -408,7 +408,8 @@ function apiKey() { return HARDCODED_KEY; }
 
 const GOLD_LINE = "#f59e0b";
 const SILVER_LINE = "#64748b";
-const HIST_WINDOW_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+const HIST_DAYS = 7;
+const HIST_WINDOW_MS = HIST_DAYS * 24 * 60 * 60 * 1000;
 const HIST_CACHE_TTL = 60 * 60 * 1000;          // cache history 1h (stays under rate limits)
 
 let prices = { XAU: 4220, XAG: 50 };
@@ -533,10 +534,10 @@ async function buildChart(metal) {
   if (!pts || pts.length < 2) {
     const cur = prices[metal];
     pts = [];
-    for (let i = 7; i >= 0; i--) pts.push([now - i * 86400000, cur]);
+    for (let i = HIST_DAYS; i >= 0; i--) pts.push([now - i * 86400000, cur]);
   }
 
-  pts = downsampleTo(pts, 2); // 2-hour increments visible on hover
+  pts = downsampleTo(pts, 1); // one point per hour
   renderChartSeries(metal, pts);
 }
 
@@ -544,7 +545,7 @@ async function fetchApiHistory(sym) {
   const key = apiKey();
   if (!key) return null;                          // /history requires a key
   const end = Math.floor(Date.now() / 1000);      // Unix seconds
-  const start = end - 7 * 24 * 60 * 60;           // 7 days back
+  const start = end - HIST_DAYS * 24 * 60 * 60;   // window back
   // Prefer hourly buckets (premium) so hovering shows intra-day detail; fall
   // back to daily if hourly isn't available on the current plan.
   for (const groupBy of ["hour", "day"]) {
@@ -590,8 +591,12 @@ function normalizeHistory(data) {
 }
 
 function parseTimeField(item) {
-  const v = item.day ?? item.hour ?? item.minute ?? item.week ?? item.month ?? item.year
-         ?? item.timestamp ?? item.time ?? item.date ?? item.datetime ?? item.t;
+  // Prefer full timestamps and finer period fields so hourly buckets keep their
+  // hour-of-day (a coarse "day" field would collapse everything to 00:00).
+  const v = item.timestamp ?? item.datetime ?? item.time ?? item.t
+         ?? item.minute ?? item.hour
+         ?? item.day ?? item.week ?? item.month ?? item.year
+         ?? item.date;
   if (v == null) return null;
   if (typeof v === "number") {
     if (v >= 1e12) return v;                       // already ms
@@ -605,7 +610,7 @@ function parseTimeField(item) {
 // Collapse points into fixed-width time bins (averaging), e.g. 2-hour buckets.
 // Daily-spaced data passes through unchanged (one point per bin).
 function downsampleTo(pts, hours) {
-  if (hours <= 1) return pts;
+  if (hours < 1) return pts;
   const withTs = pts.filter(p => p[0] != null && isFinite(p[1]));
   if (withTs.length < 2) return pts;               // no usable timestamps
   const binMs = hours * 3600 * 1000;
@@ -620,7 +625,7 @@ function downsampleTo(pts, hours) {
 }
 
 // ── History cache (protects the 10 req/hr free limit) ──
-function histCacheKey(sym) { return "jjtrader_histcache_" + sym; }
+function histCacheKey(sym) { return "jjtrader_histcache_v2_" + HIST_DAYS + "d_" + sym; }
 function loadHistCache(sym) {
   try {
     const v = JSON.parse(localStorage.getItem(histCacheKey(sym)));
