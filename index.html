@@ -8,34 +8,103 @@
 <title>Jerusalem Jewelry Tracker</title>
 <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
 <style>
+  /* ── Theme tokens ───────────────────────────────────── */
+  :root {
+    --bg: #F1F3F7;
+    --surface: #ffffff;
+    --inset: #f8fafc;
+    --inset-2: #f1f5f9;
+    --border: #f1f5f9;
+    --border-strong: #e2e8f0;
+    --text: #0f172a;
+    --text-strong: #1e293b;
+    --text-muted: #64748b;
+    --text-faint: #94a3b8;
+    --shadow: 0 2px 12px rgba(15,23,42,.04);
+    --shadow-sm: 0 1px 4px rgba(0,0,0,.06);
+    --overlay-bg: rgba(15,23,42,.45);
+    --btn-primary-bg: #0f172a;
+    --btn-primary-fg: #ffffff;
+    --toggle-off-bg: #e2e8f0;
+    --toggle-off-fg: #64748b;
+    --toggle-on-bg: #0f172a;
+    --toggle-on-fg: #ffffff;
+    --debug-bg: #0f172a;
+    --accent-gold: #fbbf24;
+    --gold-line: #f59e0b;
+    --silver-line: #64748b;
+    --badge-gold-bg: #fffbeb;
+    --badge-gold-fg: #d97706;
+    --badge-gold-bd: #fcd34d;
+    --badge-emerald-bg: #ecfdf5;
+    --badge-emerald-fg: #059669;
+    --badge-emerald-bd: #6ee7b7;
+    --buy-fg: #059669;
+  }
+  html.dark {
+    --bg: #0b1120;
+    --surface: #131c2e;
+    --inset: #1a2436;
+    --inset-2: #1e293b;
+    --border: #1e293b;
+    --border-strong: #273449;
+    --text: #e2e8f0;
+    --text-strong: #f1f5f9;
+    --text-muted: #94a3b8;
+    --text-faint: #64748b;
+    --shadow: 0 2px 16px rgba(0,0,0,.45);
+    --shadow-sm: 0 1px 4px rgba(0,0,0,.4);
+    --overlay-bg: rgba(0,0,0,.6);
+    --btn-primary-bg: #fbbf24;
+    --btn-primary-fg: #0f172a;
+    --toggle-off-bg: #273449;
+    --toggle-off-fg: #94a3b8;
+    --toggle-on-bg: #fbbf24;
+    --toggle-on-fg: #0f172a;
+    --debug-bg: #020617;
+    --badge-gold-bg: rgba(217,119,6,.15);
+    --badge-gold-fg: #fbbf24;
+    --badge-gold-bd: rgba(251,191,36,.35);
+    --badge-emerald-bg: rgba(5,150,105,.15);
+    --badge-emerald-fg: #34d399;
+    --badge-emerald-bd: rgba(52,211,153,.35);
+    --buy-fg: #34d399;
+  }
+
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; overflow: hidden; }
   body {
     font-family: 'DM Sans', 'Avenir', 'Helvetica Neue', -apple-system, sans-serif;
-    background: #F1F3F7;
-    color: #0f172a;
+    background: var(--bg);
+    color: var(--text);
     -webkit-tap-highlight-color: transparent;
     -webkit-font-smoothing: antialiased;
+  }
+
+  body, .icon-btn, .chart-card, .rates-card, .modal, .field-select, .field-input,
+  .toggle-row, .buy-row, .test-btn, .save-btn, .metal-btn, .toggle-btn,
+  .badge-gold, .badge-emerald, .sell-row, .rates-header {
+    transition: background-color .25s ease, color .25s ease, border-color .25s ease, box-shadow .25s ease;
   }
 
   .page { display: flex; flex-direction: column; height: 100vh; padding: 20px; gap: 16px; }
 
   /* header */
   .header { display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
-  .header-title { font-size: 12px; font-weight: 700; color: #94a3b8; letter-spacing: 2px; text-transform: uppercase; }
+  .header-title { font-size: 12px; font-weight: 700; color: var(--text-faint); letter-spacing: 2px; text-transform: uppercase; }
   .header-right { display: flex; gap: 8px; align-items: center; }
-  .last-update { font-size: 11px; color: #94a3b8; }
+  .last-update { font-size: 11px; color: var(--text-faint); }
   .icon-btn {
-    background: #fff; border: none; border-radius: 10px; padding: 8px 14px;
-    font-size: 13px; font-weight: 600; color: #64748b; cursor: pointer;
-    box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    background: var(--surface); border: none; border-radius: 10px; padding: 8px 14px;
+    font-size: 13px; font-weight: 600; color: var(--text-muted); cursor: pointer;
+    box-shadow: var(--shadow-sm);
   }
 
   /* grid */
   .grid { flex: 1; display: grid; grid-template-columns: 35% 1fr; gap: 16px; min-height: 0; }
   .left-col { display: flex; flex-direction: column; gap: 16px; min-height: 0; }
 
-  /* price card */
+  /* price card (gold hero) */
   .price-card {
     position: relative; overflow: hidden;
     background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
@@ -61,89 +130,119 @@
   .gram-price { font-size: 20px; font-weight: 700; color: #fcd34d; }
   .gram-unit { font-size: 13px; font-weight: 600; color: rgba(251,191,36,.6); }
 
+  /* silver card */
+  .silver-card {
+    position: relative; overflow: hidden;
+    background: linear-gradient(135deg, #334155 0%, #475569 100%);
+    border-radius: 20px; padding: 18px 22px; flex-shrink: 0;
+  }
+  html.dark .silver-card { background: linear-gradient(135deg, #1e293b 0%, #334155 100%); }
+  .silver-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .silver-label { color: #cbd5e1; font-weight: 700; font-size: 11px; letter-spacing: 1.5px; }
+  .silver-price-row { display: flex; align-items: baseline; gap: 6px; }
+  .silver-price { font-size: 32px; font-weight: 800; color: #fff; line-height: 1.1; letter-spacing: -.5px; }
+  .silver-oz { font-size: 14px; color: rgba(255,255,255,.4); }
+  .silver-pills { display: flex; gap: 8px; margin-top: 10px; }
+  .s-pill { flex: 1; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); border-radius: 10px; padding: 6px 10px; }
+  .s-pill-label { font-size: 9px; font-weight: 700; letter-spacing: 1px; }
+  .s-pill-val { font-size: 16px; font-weight: 800; color: #fff; }
+  .s-sell .s-pill-label { color: #fcd34d; }
+  .s-buy .s-pill-label { color: #6ee7b7; }
+
   /* chart */
   .chart-card {
-    flex: 1; background: #fff; border-radius: 20px; padding: 16px;
+    flex: 1; background: var(--surface); border-radius: 20px; padding: 16px;
     display: flex; flex-direction: column; min-height: 0;
-    box-shadow: 0 2px 12px rgba(15,23,42,.04);
+    box-shadow: var(--shadow);
   }
   .chart-card canvas { flex: 1; min-height: 0; }
-  .section-label { font-size: 10px; font-weight: 700; color: #94a3b8; letter-spacing: 1.5px; margin-bottom: 8px; display: block; }
+  .chart-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .section-label { font-size: 10px; font-weight: 700; color: var(--text-faint); letter-spacing: 1.5px; display: block; }
+  .metal-toggle { display: flex; gap: 4px; }
+  .metal-btn {
+    border: none; background: var(--inset-2); color: var(--text-muted);
+    font-size: 10px; font-weight: 800; letter-spacing: .5px; padding: 4px 10px;
+    border-radius: 8px; cursor: pointer; font-family: inherit;
+  }
+  .metal-btn.active[data-metal="XAU"] { background: var(--accent-gold); color: #0f172a; }
+  .metal-btn.active[data-metal="XAG"] { background: #94a3b8; color: #0f172a; }
 
   /* rates */
   .rates-card {
-    background: #fff; border-radius: 20px; display: flex; flex-direction: column;
-    overflow: hidden; box-shadow: 0 2px 12px rgba(15,23,42,.04);
+    background: var(--surface); border-radius: 20px; display: flex; flex-direction: column;
+    overflow: hidden; box-shadow: var(--shadow);
   }
-  .rates-header { padding: 16px 24px; border-bottom: 2px solid #f1f5f9; }
-  .rates-title { font-size: 17px; font-weight: 900; color: #0f172a; }
+  .rates-header { padding: 16px 24px; border-bottom: 2px solid var(--border); }
+  .rates-title { font-size: 17px; font-weight: 900; color: var(--text); }
   .rates-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding: 16px 24px 24px; flex: 1; overflow: auto; -webkit-overflow-scrolling: touch; }
   .rate-col { display: flex; flex-direction: column; gap: 4px; }
 
   .sell-row {
     display: flex; justify-content: space-between; align-items: center;
-    padding: 10px 0; border-bottom: 1px solid #f1f5f9;
+    padding: 10px 0; border-bottom: 1px solid var(--border);
   }
   .item-left { display: flex; align-items: center; gap: 8px; }
-  .item-name { font-size: 15px; font-weight: 700; color: #1e293b; }
-  .item-price { font-size: 15px; font-weight: 700; color: #0f172a; }
+  .item-name { font-size: 15px; font-weight: 700; color: var(--text-strong); }
+  .item-price { font-size: 15px; font-weight: 700; color: var(--text); }
   .badge-gold {
-    background: #fffbeb; color: #d97706; border: 1px solid #fcd34d;
+    background: var(--badge-gold-bg); color: var(--badge-gold-fg); border: 1px solid var(--badge-gold-bd);
     border-radius: 6px; padding: 2px 7px; font-size: 10px; font-weight: 900;
   }
   .buy-row {
     display: flex; justify-content: space-between; align-items: center;
-    padding: 10px 14px; background: #f8fafc; border-radius: 10px;
-    border: 1px solid #e2e8f0; margin-bottom: 2px;
+    padding: 10px 14px; background: var(--inset); border-radius: 10px;
+    border: 1px solid var(--border-strong); margin-bottom: 2px;
   }
-  .buy-price { font-size: 15px; font-weight: 700; color: #059669; }
+  .buy-price { font-size: 15px; font-weight: 700; color: var(--buy-fg); }
   .badge-emerald {
-    background: #ecfdf5; color: #059669; border: 1px solid #6ee7b7;
+    background: var(--badge-emerald-bg); color: var(--badge-emerald-fg); border: 1px solid var(--badge-emerald-bd);
     border-radius: 6px; padding: 2px 7px; font-size: 10px; font-weight: 900;
   }
 
   /* modal */
   .overlay {
-    position: fixed; inset: 0; background: rgba(15,23,42,.45);
+    position: fixed; inset: 0; background: var(--overlay-bg);
     backdrop-filter: blur(4px); display: flex; justify-content: center;
     align-items: center; z-index: 999; display: none;
   }
   .overlay.open { display: flex; }
   .modal {
-    background: #fff; border-radius: 16px; padding: 28px; width: 90%;
+    background: var(--surface); color: var(--text); border-radius: 16px; padding: 28px; width: 90%;
     max-width: 440px; max-height: 80vh; overflow-y: auto;
     -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; gap: 12px;
   }
   .modal-header { display: flex; justify-content: space-between; align-items: center; }
   .modal-title { font-size: 18px; font-weight: 900; }
-  .close-btn { background: none; border: none; font-size: 18px; color: #94a3b8; cursor: pointer; }
-  .field-label { font-size: 10px; font-weight: 700; color: #64748b; letter-spacing: 1px; margin-top: 4px; }
+  .close-btn { background: none; border: none; font-size: 18px; color: var(--text-faint); cursor: pointer; }
+  .field-label { font-size: 10px; font-weight: 700; color: var(--text-muted); letter-spacing: 1px; margin-top: 4px; }
   .field-select, .field-input {
-    width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0;
-    background: #f8fafc; font-size: 14px; color: #0f172a;
+    width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-strong);
+    background: var(--inset); font-size: 14px; color: var(--text);
     -webkit-appearance: none; font-family: inherit;
   }
   .toggle-row {
     display: flex; justify-content: space-between; align-items: center;
-    padding: 14px; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0;
+    padding: 14px; background: var(--inset); border-radius: 10px; border: 1px solid var(--border-strong);
   }
   .toggle-title { font-weight: 700; font-size: 13px; }
-  .toggle-desc { color: #64748b; font-size: 11px; }
+  .toggle-desc { color: var(--text-muted); font-size: 11px; }
   .toggle-btn {
     border: none; border-radius: 20px; padding: 5px 14px; font-weight: 700;
     font-size: 12px; cursor: pointer; min-width: 50px;
+    background: var(--toggle-off-bg); color: var(--toggle-off-fg);
   }
+  .toggle-btn.on { background: var(--toggle-on-bg); color: var(--toggle-on-fg); }
   .test-btn {
-    width: 100%; padding: 11px; background: #f1f5f9; border: none; border-radius: 8px;
-    font-weight: 700; color: #475569; font-size: 13px; cursor: pointer; font-family: inherit;
+    width: 100%; padding: 11px; background: var(--inset-2); border: none; border-radius: 8px;
+    font-weight: 700; color: var(--text-muted); font-size: 13px; cursor: pointer; font-family: inherit;
   }
   .debug-box {
-    background: #0f172a; padding: 10px; border-radius: 8px; font-size: 11px;
+    background: var(--debug-bg); padding: 10px; border-radius: 8px; font-size: 11px;
     font-family: monospace; white-space: pre-wrap; max-height: 100px; overflow: auto;
-    display: none;
+    display: none; color: #94a3b8;
   }
   .save-btn {
-    width: 100%; padding: 13px; background: #0f172a; color: #fff; border: none;
+    width: 100%; padding: 13px; background: var(--btn-primary-bg); color: var(--btn-primary-fg); border: none;
     border-radius: 10px; font-weight: 700; font-size: 14px; cursor: pointer; font-family: inherit;
   }
 
@@ -161,6 +260,13 @@
     .big-price { font-size: 36px; }
   }
 </style>
+<script>
+  /* Apply saved theme before first paint to avoid a flash */
+  try {
+    var _s = JSON.parse(localStorage.getItem("jjtrader_settings") || "{}");
+    if (_s && _s.dark) document.documentElement.classList.add("dark");
+  } catch (e) {}
+</script>
 </head>
 <body>
 <div class="page">
@@ -177,7 +283,7 @@
   <!-- GRID -->
   <div class="grid">
     <div class="left-col">
-      <!-- PRICE CARD -->
+      <!-- GOLD PRICE CARD -->
       <div class="price-card">
         <div class="price-card-bg">$</div>
         <div class="price-card-inner">
@@ -186,18 +292,46 @@
             <span class="market-badge market-open" id="marketBadge">MARKET: OPEN</span>
           </div>
           <div class="big-price-row">
-            <span class="big-price" id="bigPrice">$2,740</span>
+            <span class="big-price" id="bigPrice">$4,220</span>
             <span class="oz-unit">/ oz</span>
           </div>
           <div class="gram-row">
-            <span class="gram-price" id="gramPrice">$77.42</span>
+            <span class="gram-price" id="gramPrice">$119.39</span>
             <span class="gram-unit">/ G (21K)</span>
           </div>
         </div>
       </div>
+
+      <!-- SILVER PRICE CARD -->
+      <div class="silver-card">
+        <div class="silver-top">
+          <span class="silver-label">LIVE SILVER PRICE</span>
+        </div>
+        <div class="silver-price-row">
+          <span class="silver-price" id="silverPrice">$50.00</span>
+          <span class="silver-oz">/ oz</span>
+        </div>
+        <div class="silver-pills">
+          <div class="s-pill s-sell">
+            <div class="s-pill-label">SELL</div>
+            <div class="s-pill-val" id="silverSell">$60.00</div>
+          </div>
+          <div class="s-pill s-buy">
+            <div class="s-pill-label">BUY</div>
+            <div class="s-pill-val" id="silverBuy">$48.00</div>
+          </div>
+        </div>
+      </div>
+
       <!-- CHART -->
       <div class="chart-card">
-        <span class="section-label">TODAY'S TREND</span>
+        <div class="chart-head">
+          <span class="section-label">3-DAY TREND</span>
+          <div class="metal-toggle">
+            <button class="metal-btn active" data-metal="XAU" onclick="setMetal('XAU')">GOLD</button>
+            <button class="metal-btn" data-metal="XAG" onclick="setMetal('XAG')">SILVER</button>
+          </div>
+        </div>
         <canvas id="chart"></canvas>
       </div>
     </div>
@@ -238,11 +372,16 @@
     </div>
     <div class="toggle-row">
       <div><div class="toggle-title">Manual Price Override</div><div class="toggle-desc">Disable live feed completely</div></div>
-      <button class="toggle-btn" id="manualToggle" onclick="toggleManual()" style="background:#e2e8f0;color:#64748b">OFF</button>
+      <button class="toggle-btn" id="manualToggle" onclick="toggleManual()">OFF</button>
     </div>
-    <input class="field-input" type="number" id="manualInput" placeholder="Enter custom price ($)" style="display:none" oninput="onManualInput()">
+    <input class="field-input" type="number" id="manualInput" placeholder="Enter custom gold price ($)" style="display:none" oninput="onManualInput()">
     <label class="field-label">POLL INTERVAL (seconds)</label>
     <input class="field-input" type="number" id="pollInput" value="10" min="5" max="300">
+    <label class="field-label">APPEARANCE</label>
+    <div class="toggle-row">
+      <div><div class="toggle-title">Dark Mode</div><div class="toggle-desc">Revamp the entire interface</div></div>
+      <button class="toggle-btn" id="darkToggle" onclick="toggleDark()">OFF</button>
+    </div>
     <button class="test-btn" onclick="testConn()">Test Connection</button>
     <pre class="debug-box" id="debugBox"></pre>
     <button class="save-btn" onclick="saveSettings()">Save & Close</button>
@@ -252,53 +391,65 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
 // ── State ──────────────────────────────────────────────
-const HARDCODED_KEY = "";
-let price = 2740;
-let chartData = { labels: [], values: [] };
+const HARDCODED_KEY = "5638f52f37bcfa0a06b3a422c1f5fdb3d9042a6da250d1157a85a4ae2aafe62c";
+const GOLD_LINE = "#f59e0b";
+const SILVER_LINE = "#64748b";
+const HIST_WINDOW_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
+const HIST_CACHE_TTL = 60 * 60 * 1000;          // cache history 1h (free tier = 10 req/hr)
+
+function apiKey() { return settings.apiKey || HARDCODED_KEY; }
+
+let prices = { XAU: 4220, XAG: 50 };
+let currentMetal = "XAU";
+let currentLineColor = GOLD_LINE;
 let marketOpen = true;
 let lastPrice = null;
 let unchangedCount = 0;
-let lastMinute = "";
 let pollTimer = null;
+let chartTimer = null;
+let chart;
 
 let settings = {
   dataSource: "free",
   apiKey: "",
   manual: false,
   pollInterval: 10,
+  dark: false,
 };
 
 // Load settings from localStorage
 try {
   const saved = localStorage.getItem("jjtrader_settings");
   if (saved) settings = { ...settings, ...JSON.parse(saved) };
-} catch(e) {}
-
-let chart;
+} catch (e) {}
 
 // ── Init ───────────────────────────────────────────────
 window.addEventListener("DOMContentLoaded", () => {
+  applyTheme();
   initChart();
-  seedChart();
   updateUI();
+  buildChart(currentMetal);
   startPolling();
+  // Refresh the historical series every 5 min (not a live "now" tick).
+  chartTimer = setInterval(() => buildChart(currentMetal), 30 * 60 * 1000);
 });
 
 function initChart() {
   const ctx = document.getElementById("chart").getContext("2d");
+  const c = chartColors();
   chart = new Chart(ctx, {
     type: "line",
     data: {
-      labels: chartData.labels,
+      labels: [],
       datasets: [{
-        data: chartData.values,
-        borderColor: "#f59e0b",
+        data: [],
+        borderColor: currentLineColor,
         borderWidth: 2.5,
         fill: true,
         backgroundColor: (ctx) => {
           const g = ctx.chart.ctx.createLinearGradient(0, 0, 0, ctx.chart.height);
-          g.addColorStop(0, "rgba(245,158,11,.3)");
-          g.addColorStop(1, "rgba(245,158,11,0)");
+          g.addColorStop(0, hexToRgba(currentLineColor, 0.30));
+          g.addColorStop(1, hexToRgba(currentLineColor, 0));
           return g;
         },
         tension: 0.3,
@@ -310,10 +461,13 @@ function initChart() {
       maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        x: { ticks: { color: "#94a3b8", font: { size: 10 } }, grid: { display: false } },
+        x: {
+          ticks: { color: c.tick, font: { size: 10 }, maxTicksLimit: 6, maxRotation: 0, autoSkip: true },
+          grid: { display: false },
+        },
         y: {
-          ticks: { color: "#94a3b8", font: { size: 10 }, callback: v => "$" + v },
-          grid: { color: "rgba(148,163,184,.12)" },
+          ticks: { color: c.tick, font: { size: 10 }, callback: v => "$" + Number(v).toLocaleString() },
+          grid: { color: c.grid },
         },
       },
       interaction: { intersect: false, mode: "index" },
@@ -321,15 +475,163 @@ function initChart() {
   });
 }
 
-function seedChart() {
-  const h = new Date().getHours();
-  let p = price;
-  for (let i = 0; i <= h; i++) {
-    p += (Math.random() - 0.5) * 8;
-    chartData.labels.push(pad(i) + ":00");
-    chartData.values.push(Math.round(p * 100) / 100);
+// ── Historical chart ───────────────────────────────────
+// gold-api.com /history: requires x-api-key, free tier = 10 req/hr, and on the
+// free tier the finest grouping is "day" (hour/minute are premium). We pull the
+// last 3 days grouped by day and cache the result for an hour to stay under the
+// rate limit. If the call fails we fall back to locally recorded prices.
+async function buildChart(metal) {
+  const now = Date.now();
+  let pts = null;
+
+  const cache = loadHistCache(metal);
+  if (cache && now - cache.ts < HIST_CACHE_TTL && cache.pts.length >= 2) {
+    pts = cache.pts;                              // fresh cache: no API call
+  } else {
+    const apiPts = await fetchApiHistory(metal);
+    if (apiPts && apiPts.length >= 2) {
+      pts = apiPts;
+      saveHistCache(metal, apiPts);
+    } else if (cache && cache.pts.length >= 2) {
+      pts = cache.pts;                            // stale cache beats nothing
+    }
   }
+
+  // Fallback: locally recorded observations.
+  if (!pts || pts.length < 2) {
+    const cutoff = now - HIST_WINDOW_MS;
+    const loc = loadLocalHist(metal).filter(p => p[0] >= cutoff).sort((a, b) => a[0] - b[0]);
+    if (loc.length >= 2) pts = loc;
+  }
+  // Last resort: flat baseline so the chart isn't blank.
+  if (!pts || pts.length < 2) {
+    const cur = prices[metal];
+    pts = [];
+    for (let i = 3; i >= 0; i--) pts.push([now - i * 86400000, cur]);
+  }
+
+  renderChartSeries(metal, pts);
+}
+
+async function fetchApiHistory(sym) {
+  const key = apiKey();
+  if (!key) return null;                          // /history requires a key
+  const end = Math.floor(Date.now() / 1000);      // Unix seconds
+  const start = end - 3 * 24 * 60 * 60;           // 3 days back
+  const url = `https://api.gold-api.com/history?symbol=${sym}`
+            + `&startTimestamp=${start}&endTimestamp=${end}`
+            + `&groupBy=day&aggregation=avg&orderBy=asc`;
+  try {
+    const res = await fetch(url, { headers: { "x-api-key": key } });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const pts = normalizeHistory(data);
+    return pts.length ? pts : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+// Response is an array of buckets, each with a period field (day/month/...) and
+// a price field (avg_price/max_price/min_price depending on aggregation).
+function normalizeHistory(data) {
+  let arr = Array.isArray(data)
+    ? data
+    : (data && (data.data || data.history || data.results || data.prices || data.items)) || [];
+  if (!Array.isArray(arr)) return [];
+  const pts = [];
+  for (const item of arr) {
+    if (item == null) continue;
+    let price, ts = null;
+    if (typeof item === "number") {
+      price = item;
+    } else {
+      price = Number(
+        item.avg_price ?? item.max_price ?? item.min_price ??
+        item.price ?? item.value ?? item.close ?? item.rate
+      );
+      ts = parseTimeField(item);
+    }
+    if (!isFinite(price)) continue;
+    pts.push([ts, price]);
+  }
+  return pts;
+}
+
+function parseTimeField(item) {
+  const v = item.day ?? item.hour ?? item.minute ?? item.week ?? item.month ?? item.year
+         ?? item.timestamp ?? item.time ?? item.date ?? item.datetime ?? item.t;
+  if (v == null) return null;
+  if (typeof v === "number") {
+    if (v >= 1e12) return v;                       // already ms
+    if (v >= 1e9) return v * 1000;                 // seconds -> ms
+    return null;                                   // small int bucket index, not a date
+  }
+  const parsed = Date.parse(v);                    // ISO / date string
+  return isFinite(parsed) ? parsed : null;
+}
+
+// ── History cache (protects the 10 req/hr free limit) ──
+function histCacheKey(sym) { return "jjtrader_histcache_" + sym; }
+function loadHistCache(sym) {
+  try {
+    const v = JSON.parse(localStorage.getItem(histCacheKey(sym)));
+    return v && Array.isArray(v.pts) ? v : null;
+  } catch (e) { return null; }
+}
+function saveHistCache(sym, pts) {
+  try { localStorage.setItem(histCacheKey(sym), JSON.stringify({ ts: Date.now(), pts })); }
+  catch (e) {}
+}
+
+function renderChartSeries(metal, pts) {
+  currentLineColor = metal === "XAG" ? SILVER_LINE : GOLD_LINE;
+  const anyTs = pts.some(p => p[0] != null);
+  let labels;
+  if (anyTs) {
+    labels = pts.map(p => (p[0] != null ? fmtTick(p[0]) : ""));
+  } else {
+    // No usable timestamps: approximate daily labels ending today.
+    const n = pts.length;
+    labels = pts.map((p, i) => {
+      const d = new Date(Date.now() - (n - 1 - i) * 86400000);
+      return (d.getMonth() + 1) + "/" + d.getDate();
+    });
+  }
+  chart.data.labels = labels;
+  chart.data.datasets[0].data = pts.map(p => Math.round(p[1] * 100) / 100);
+  chart.data.datasets[0].borderColor = currentLineColor;
+  applyChartTheme();
   chart.update("none");
+}
+
+function setMetal(m) {
+  currentMetal = m;
+  document.querySelectorAll(".metal-btn").forEach(b => b.classList.toggle("active", b.dataset.metal === m));
+  buildChart(m);
+}
+
+// ── Local rolling history (resilient real-data source) ──
+function histKey(sym) { return "jjtrader_hist_" + sym; }
+function loadLocalHist(sym) {
+  try { const v = JSON.parse(localStorage.getItem(histKey(sym))); return Array.isArray(v) ? v : []; }
+  catch (e) { return []; }
+}
+function saveLocalHist(sym, arr) {
+  try { localStorage.setItem(histKey(sym), JSON.stringify(arr)); } catch (e) {}
+}
+function recordObservation(sym, price) {
+  if (!isFinite(price)) return;
+  const now = Date.now();
+  let h = loadLocalHist(sym);
+  const last = h[h.length - 1];
+  if (last && now - last[0] < 10 * 60 * 1000) {
+    last[1] = price;                 // update most recent point (<=10 min old)
+  } else {
+    h.push([now, price]);            // otherwise add a new point
+  }
+  h = h.filter(p => p[0] >= now - HIST_WINDOW_MS);
+  saveLocalHist(sym, h);
 }
 
 // ── Formatting ─────────────────────────────────────────
@@ -337,10 +639,21 @@ function fmt(v, d = 0) {
   return "$" + v.toFixed(d).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 function pad(n) { return String(n).padStart(2, "0"); }
+function fmtTick(ts) {
+  const d = new Date(ts);
+  return (d.getMonth() + 1) + "/" + d.getDate();
+}
+function hexToRgba(hex, a) {
+  const m = hex.replace("#", "");
+  const r = parseInt(m.substring(0, 2), 16);
+  const g = parseInt(m.substring(2, 4), 16);
+  const b = parseInt(m.substring(4, 6), 16);
+  return `rgba(${r},${g},${b},${a})`;
+}
 function roundSell(v) { return Math.round(v / 5) * 5; }
 function roundBuy(v) { return Math.floor(v / 2) * 2; }
 
-// ── Calculations ───────────────────────────────────────
+// ── Calculations (gold) ────────────────────────────────
 function calcSell(x) {
   const y = (x + 15) * 32.15, z = x + 150;
   const lira21 = ((y * 0.88 / 1000) + 1) * 8 + 20;
@@ -368,83 +681,125 @@ function calcBuy(x) {
 
 // ── UI Update ──────────────────────────────────────────
 function updateUI() {
-  document.getElementById("bigPrice").textContent = fmt(price);
-  const gram = (price * 32.15 * 0.88) / 1000;
+  // Gold
+  document.getElementById("bigPrice").textContent = fmt(prices.XAU);
+  const gram = (prices.XAU * 32.15 * 0.88) / 1000;
   document.getElementById("gramPrice").textContent = fmt(gram, 2);
 
   const badge = document.getElementById("marketBadge");
   badge.textContent = "MARKET: " + (marketOpen ? "OPEN" : "CLOSED");
   badge.className = "market-badge " + (marketOpen ? "market-open" : "market-closed");
 
-  // Sell
-  const sellHTML = calcSell(price).map(i =>
+  // Silver: sell = spot + $10, buy = spot - $2
+  document.getElementById("silverPrice").textContent = fmt(prices.XAG, 2);
+  document.getElementById("silverSell").textContent = fmt(prices.XAG + 10, 2);
+  document.getElementById("silverBuy").textContent = fmt(prices.XAG - 2, 2);
+
+  // Sell (gold)
+  const sellHTML = calcSell(prices.XAU).map(i =>
     `<div class="sell-row"><div class="item-left"><span class="item-name">${i.name}</span><span class="badge-gold">${i.k}</span></div><span class="item-price">${fmt(i.p)}</span></div>`
   ).join("");
   document.getElementById("sellList").innerHTML = sellHTML;
 
-  // Buy
-  const buyHTML = calcBuy(price).map(i =>
+  // Buy (gold scrap)
+  const buyHTML = calcBuy(prices.XAU).map(i =>
     `<div class="buy-row"><div class="item-left"><span class="item-name">${i.name}</span><span class="badge-emerald">${i.k}</span></div><span class="buy-price">${fmt(i.p)}</span></div>`
   ).join("");
   document.getElementById("buyList").innerHTML = buyHTML;
-
-  // Chart tick
-  const now = new Date();
-  const min = pad(now.getHours()) + ":" + pad(now.getMinutes());
-  if (min !== lastMinute) {
-    chartData.labels.push(min);
-    chartData.values.push(price);
-    lastMinute = min;
-  } else if (chartData.values.length) {
-    chartData.values[chartData.values.length - 1] = price;
-  }
-  chart.update("none");
 }
 
 // ── Fetch ──────────────────────────────────────────────
-async function fetchPrice() {
-  if (settings.manual) return;
+async function fetchPrices() {
+  if (settings.manual) { updateUI(); return; }
+
   if (settings.dataSource === "demo") {
-    price = Math.max(0, price + (Math.random() - 0.5) * 1.5);
+    prices.XAU = Math.max(0, prices.XAU + (Math.random() - 0.5) * 4);
+    prices.XAG = Math.max(0, prices.XAG + (Math.random() - 0.5) * 0.3);
+    recordObservation("XAU", prices.XAU);
+    recordObservation("XAG", prices.XAG);
     document.getElementById("lastUpdate").textContent = "Updated " + new Date().toLocaleTimeString();
     updateUI();
     return;
   }
+
   try {
-    const h = { "Content-Type": "application/json" };
-    if (settings.dataSource === "pro") h["x-api-key"] = settings.apiKey || HARDCODED_KEY;
-    const res = await fetch("https://api.gold-api.com/price/XAU", { headers: h });
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    const data = await res.json();
-    if (data.price) {
-      const p = Number(data.price);
-      if (p === lastPrice) {
+    const [g, s] = await Promise.all([fetchOne("XAU"), fetchOne("XAG")]);
+
+    if (g != null) {
+      if (g === lastPrice) {
         unchangedCount++;
         if (unchangedCount >= 6) { marketOpen = false; restartPolling(60); }
       } else {
         unchangedCount = 0;
         if (!marketOpen) { marketOpen = true; restartPolling(settings.pollInterval); }
       }
-      lastPrice = p;
-      price = p;
-      document.getElementById("lastUpdate").textContent = "Updated " + new Date().toLocaleTimeString();
-      updateUI();
+      lastPrice = g;
+      prices.XAU = g;
+      recordObservation("XAU", g);
     }
+    if (s != null) {
+      prices.XAG = s;
+      recordObservation("XAG", s);
+    }
+
+    document.getElementById("lastUpdate").textContent = "Updated " + new Date().toLocaleTimeString();
+    updateUI();
   } catch (e) {
     console.error("Fetch failed:", e.message);
   }
 }
 
+async function fetchOne(sym) {
+  const h = { "Content-Type": "application/json" };
+  if (settings.dataSource === "pro") h["x-api-key"] = settings.apiKey || HARDCODED_KEY;
+  const res = await fetch(`https://api.gold-api.com/price/${sym}`, { headers: h });
+  if (!res.ok) throw new Error("HTTP " + res.status);
+  const data = await res.json();
+  return data && data.price != null ? Number(data.price) : null;
+}
+
 function startPolling() {
   clearInterval(pollTimer);
-  fetchPrice();
-  pollTimer = setInterval(fetchPrice, settings.pollInterval * 1000);
+  fetchPrices();
+  pollTimer = setInterval(fetchPrices, settings.pollInterval * 1000);
 }
 function restartPolling(sec) {
   clearInterval(pollTimer);
-  pollTimer = setInterval(fetchPrice, sec * 1000);
+  pollTimer = setInterval(fetchPrices, sec * 1000);
 }
-function refresh() { fetchPrice(); }
+function refresh() { fetchPrices(); buildChart(currentMetal); }
+
+// ── Theme ──────────────────────────────────────────────
+function chartColors() {
+  const dark = document.documentElement.classList.contains("dark");
+  return {
+    tick: dark ? "#64748b" : "#94a3b8",
+    grid: dark ? "rgba(148,163,184,.10)" : "rgba(148,163,184,.12)",
+  };
+}
+function applyChartTheme() {
+  if (!chart) return;
+  const c = chartColors();
+  chart.options.scales.x.ticks.color = c.tick;
+  chart.options.scales.y.ticks.color = c.tick;
+  chart.options.scales.y.grid.color = c.grid;
+}
+function applyTheme() {
+  document.documentElement.classList.toggle("dark", !!settings.dark);
+  applyChartTheme();
+  if (chart) chart.update("none");
+}
+function toggleDark() {
+  settings.dark = !settings.dark;
+  syncDarkToggle();
+  applyTheme();
+  try { localStorage.setItem("jjtrader_settings", JSON.stringify(settings)); } catch (e) {}
+}
+function syncDarkToggle() {
+  const t = document.getElementById("darkToggle");
+  t.textContent = settings.dark ? "ON" : "OFF";
+  t.classList.toggle("on", settings.dark);
+}
 
 // ── Settings ───────────────────────────────────────────
 function openSettings() {
@@ -453,10 +808,8 @@ function openSettings() {
   document.getElementById("apiKeyInput").value = settings.apiKey;
   document.getElementById("pollInput").value = settings.pollInterval;
   onSourceChange();
-  const mt = document.getElementById("manualToggle");
-  mt.textContent = settings.manual ? "ON" : "OFF";
-  mt.style.background = settings.manual ? "#0f172a" : "#e2e8f0";
-  mt.style.color = settings.manual ? "#fff" : "#64748b";
+  syncManualToggle();
+  syncDarkToggle();
   document.getElementById("manualInput").style.display = settings.manual ? "block" : "none";
 }
 function closeSettings() { document.getElementById("overlay").classList.remove("open"); }
@@ -466,21 +819,23 @@ function onSourceChange() {
 }
 function toggleManual() {
   settings.manual = !settings.manual;
+  syncManualToggle();
+  document.getElementById("manualInput").style.display = settings.manual ? "block" : "none";
+}
+function syncManualToggle() {
   const mt = document.getElementById("manualToggle");
   mt.textContent = settings.manual ? "ON" : "OFF";
-  mt.style.background = settings.manual ? "#0f172a" : "#e2e8f0";
-  mt.style.color = settings.manual ? "#fff" : "#64748b";
-  document.getElementById("manualInput").style.display = settings.manual ? "block" : "none";
+  mt.classList.toggle("on", settings.manual);
 }
 function onManualInput() {
   const v = parseFloat(document.getElementById("manualInput").value);
-  if (!isNaN(v) && v > 0) { price = v; updateUI(); }
+  if (!isNaN(v) && v > 0) { prices.XAU = v; updateUI(); }
 }
 function saveSettings() {
   settings.dataSource = document.getElementById("srcSelect").value;
   settings.apiKey = document.getElementById("apiKeyInput").value;
   settings.pollInterval = Math.max(5, parseInt(document.getElementById("pollInput").value) || 10);
-  try { localStorage.setItem("jjtrader_settings", JSON.stringify(settings)); } catch(e) {}
+  try { localStorage.setItem("jjtrader_settings", JSON.stringify(settings)); } catch (e) {}
   closeSettings();
   startPolling();
 }
