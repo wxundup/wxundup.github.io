@@ -2,11 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Jerusalem Jewelry Tracker</title>
 <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700;9..40,800;9..40,900&display=swap" rel="stylesheet">
 <style>
   /* ── Theme tokens ───────────────────────────────────── */
   :root {
@@ -19,6 +22,7 @@
     --text: #0f172a;
     --text-strong: #1e293b;
     --text-muted: #64748b;
+    --text-label: #64748b;
     --text-faint: #94a3b8;
     --shadow: 0 2px 12px rgba(15,23,42,.04);
     --shadow-sm: 0 1px 4px rgba(0,0,0,.06);
@@ -30,6 +34,7 @@
     --toggle-on-bg: #0f172a;
     --toggle-on-fg: #ffffff;
     --debug-bg: #0f172a;
+    --focus-ring: #0f172a;
     --accent-gold: #fbbf24;
     --gold-line: #f59e0b;
     --silver-line: #64748b;
@@ -40,6 +45,15 @@
     --badge-emerald-fg: #059669;
     --badge-emerald-bd: #6ee7b7;
     --buy-fg: #059669;
+    --offline-fg: #ef4444;
+    --silver-card-grad-a: #334155;
+    --silver-card-grad-b: #475569;
+    --silver-card-fg: #ffffff;
+    --silver-card-fg-muted: rgba(255,255,255,.4);
+    --s-sell-label: #fcd34d;
+    --s-buy-label: #6ee7b7;
+    --s-pill-bg: rgba(255,255,255,.08);
+    --s-pill-bd: rgba(255,255,255,.12);
   }
   html.dark {
     --bg: #0b1120;
@@ -51,6 +65,7 @@
     --text: #e2e8f0;
     --text-strong: #f1f5f9;
     --text-muted: #94a3b8;
+    --text-label: #94a3b8;
     --text-faint: #64748b;
     --shadow: 0 2px 16px rgba(0,0,0,.45);
     --shadow-sm: 0 1px 4px rgba(0,0,0,.4);
@@ -62,6 +77,7 @@
     --toggle-on-bg: #fbbf24;
     --toggle-on-fg: #0f172a;
     --debug-bg: #020617;
+    --focus-ring: #fbbf24;
     --badge-gold-bg: rgba(217,119,6,.15);
     --badge-gold-fg: #fbbf24;
     --badge-gold-bd: rgba(251,191,36,.35);
@@ -69,6 +85,9 @@
     --badge-emerald-fg: #34d399;
     --badge-emerald-bd: rgba(52,211,153,.35);
     --buy-fg: #34d399;
+    --offline-fg: #f87171;
+    --silver-card-grad-a: #1e293b;
+    --silver-card-grad-b: #334155;
   }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -83,9 +102,11 @@
 
   body, .icon-btn, .chart-card, .rates-card, .modal, .field-select, .field-input,
   .toggle-row, .buy-row, .test-btn, .save-btn, .metal-btn, .toggle-btn,
-  .badge-gold, .badge-emerald, .sell-row, .rates-header {
+  .badge-gold, .badge-emerald, .sell-row, .rates-header, .crumb {
     transition: background-color .25s ease, color .25s ease, border-color .25s ease, box-shadow .25s ease;
   }
+
+  :focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 
   .page { display: flex; flex-direction: column; height: 100vh; padding: 20px; gap: 16px; }
 
@@ -94,10 +115,11 @@
   .header-title { font-size: 12px; font-weight: 700; color: var(--text-faint); letter-spacing: 2px; text-transform: uppercase; }
   .header-right { display: flex; gap: 8px; align-items: center; }
   .last-update { font-size: 11px; color: var(--text-faint); }
+  .last-update.offline { color: var(--offline-fg); font-weight: 700; }
   .icon-btn {
     background: var(--surface); border: none; border-radius: 10px; padding: 8px 14px;
     font-size: 13px; font-weight: 600; color: var(--text-muted); cursor: pointer;
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--shadow-sm); font-family: inherit;
   }
 
   /* grid */
@@ -117,7 +139,7 @@
   }
   .price-card-inner { position: relative; z-index: 1; }
   .price-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-  .price-label { color: #fbbf24; font-weight: 700; font-size: 11px; letter-spacing: 1.5px; }
+  .price-label { color: var(--accent-gold); font-weight: 700; font-size: 11px; letter-spacing: 1.5px; }
   .market-badge {
     font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 6px;
   }
@@ -130,42 +152,56 @@
   .gram-price { font-size: 20px; font-weight: 700; color: #fcd34d; }
   .gram-unit { font-size: 13px; font-weight: 600; color: rgba(251,191,36,.6); }
 
-  /* silver card */
+  /* silver card (always dark, in both themes) */
   .silver-card {
     position: relative; overflow: hidden;
-    background: linear-gradient(135deg, #334155 0%, #475569 100%);
+    background: linear-gradient(135deg, var(--silver-card-grad-a) 0%, var(--silver-card-grad-b) 100%);
     border-radius: 20px; padding: 18px 22px; flex-shrink: 0;
   }
-  html.dark .silver-card { background: linear-gradient(135deg, #1e293b 0%, #334155 100%); }
   .silver-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
-  .silver-label { color: #cbd5e1; font-weight: 700; font-size: 11px; letter-spacing: 1.5px; }
+  .silver-label { color: rgba(255,255,255,.75); font-weight: 700; font-size: 11px; letter-spacing: 1.5px; }
   .silver-price-row { display: flex; align-items: baseline; gap: 6px; }
-  .silver-price { font-size: 32px; font-weight: 800; color: #fff; line-height: 1.1; letter-spacing: -.5px; }
-  .silver-oz { font-size: 14px; color: rgba(255,255,255,.4); }
+  .silver-price { font-size: 32px; font-weight: 800; color: var(--silver-card-fg); line-height: 1.1; letter-spacing: -.5px; }
+  .silver-oz { font-size: 14px; color: var(--silver-card-fg-muted); }
   .silver-pills { display: flex; gap: 8px; margin-top: 10px; }
-  .s-pill { flex: 1; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); border-radius: 10px; padding: 6px 10px; }
+  .s-pill { flex: 1; background: var(--s-pill-bg); border: 1px solid var(--s-pill-bd); border-radius: 10px; padding: 6px 10px; }
   .s-pill-label { font-size: 9px; font-weight: 700; letter-spacing: 1px; }
-  .s-pill-val { font-size: 16px; font-weight: 800; color: #fff; }
-  .s-sell .s-pill-label { color: #fcd34d; }
-  .s-buy .s-pill-label { color: #6ee7b7; }
+  .s-pill-val { font-size: 16px; font-weight: 800; color: var(--silver-card-fg); }
+  .s-sell .s-pill-label { color: var(--s-sell-label); }
+  .s-buy .s-pill-label { color: var(--s-buy-label); }
 
   /* chart */
   .chart-card {
     flex: 1; background: var(--surface); border-radius: 20px; padding: 16px;
     display: flex; flex-direction: column; min-height: 0;
-    box-shadow: var(--shadow);
+    box-shadow: var(--shadow); overflow: hidden;
   }
-  .chart-card canvas { flex: 1; min-height: 0; }
-  .chart-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-  .section-label { font-size: 10px; font-weight: 700; color: var(--text-faint); letter-spacing: 1.5px; display: block; }
-  .metal-toggle { display: flex; gap: 4px; }
+  .chart-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .crumbs { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; }
+  .crumb {
+    background: none; border: none; padding: 2px 0; font-family: inherit;
+    font-size: 11px; font-weight: 700; color: var(--text-muted); cursor: pointer;
+  }
+  button.crumb:hover { color: var(--text-strong); text-decoration: underline; }
+  span.crumb { color: var(--text-strong); cursor: default; }
+  .crumb-sep { color: var(--text-faint); font-size: 11px; }
+  .metal-toggle { display: flex; gap: 4px; flex-shrink: 0; }
   .metal-btn {
     border: none; background: var(--inset-2); color: var(--text-muted);
     font-size: 10px; font-weight: 800; letter-spacing: .5px; padding: 4px 10px;
     border-radius: 8px; cursor: pointer; font-family: inherit;
   }
   .metal-btn.active[data-metal="XAU"] { background: var(--accent-gold); color: #0f172a; }
-  .metal-btn.active[data-metal="XAG"] { background: #94a3b8; color: #0f172a; }
+  .metal-btn.active[data-metal="XAG"] { background: var(--silver-line); color: #0f172a; }
+  .chart-body { flex: 1; min-height: 0; position: relative; }
+  .chart-body canvas { position: absolute; inset: 0; width: 100% !important; height: 100% !important; }
+  .chart-empty {
+    position: absolute; inset: 0; display: flex; flex-direction: column; gap: 6px;
+    align-items: center; justify-content: center; text-align: center; padding: 16px;
+    font-size: 13px; font-weight: 600; color: var(--text-muted); background: var(--surface);
+  }
+  .chart-empty[hidden] { display: none; }
+  .chart-empty-hint { font-size: 11px; font-weight: 500; color: var(--text-faint); }
 
   /* rates */
   .rates-card {
@@ -173,9 +209,10 @@
     overflow: hidden; box-shadow: var(--shadow);
   }
   .rates-header { padding: 16px 24px; border-bottom: 2px solid var(--border); }
-  .rates-title { font-size: 17px; font-weight: 900; color: var(--text); }
+  .rates-title { font-size: 17px; font-weight: 800; color: var(--text); }
   .rates-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding: 16px 24px 24px; flex: 1; overflow: auto; -webkit-overflow-scrolling: touch; }
   .rate-col { display: flex; flex-direction: column; gap: 4px; }
+  .rate-col-label { font-size: 11px; font-weight: 700; color: var(--text-label); }
 
   .sell-row {
     display: flex; justify-content: space-between; align-items: center;
@@ -199,6 +236,11 @@
     border-radius: 6px; padding: 2px 7px; font-size: 10px; font-weight: 900;
   }
 
+  /* numeric alignment: prices update in place, so digits must not shift */
+  .big-price, .gram-price, .silver-price, .s-pill-val, .item-price, .buy-price {
+    font-variant-numeric: tabular-nums;
+  }
+
   /* modal */
   .overlay {
     position: fixed; inset: 0; background: var(--overlay-bg);
@@ -212,9 +254,9 @@
     -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; gap: 12px;
   }
   .modal-header { display: flex; justify-content: space-between; align-items: center; }
-  .modal-title { font-size: 18px; font-weight: 900; }
+  .modal-title { font-size: 18px; font-weight: 800; }
   .close-btn { background: none; border: none; font-size: 18px; color: var(--text-faint); cursor: pointer; }
-  .field-label { font-size: 10px; font-weight: 700; color: var(--text-muted); letter-spacing: 1px; margin-top: 4px; }
+  .field-label { font-size: 11px; font-weight: 700; color: var(--text-muted); margin-top: 4px; }
   .field-select, .field-input {
     width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-strong);
     background: var(--inset); font-size: 14px; color: var(--text);
@@ -228,7 +270,7 @@
   .toggle-desc { color: var(--text-muted); font-size: 11px; }
   .toggle-btn {
     border: none; border-radius: 20px; padding: 5px 14px; font-weight: 700;
-    font-size: 12px; cursor: pointer; min-width: 50px;
+    font-size: 12px; cursor: pointer; min-width: 50px; font-family: inherit;
     background: var(--toggle-off-bg); color: var(--toggle-off-fg);
   }
   .toggle-btn.on { background: var(--toggle-on-bg); color: var(--toggle-on-fg); }
@@ -246,18 +288,29 @@
     border-radius: 10px; font-weight: 700; font-size: 14px; cursor: pointer; font-family: inherit;
   }
 
-  /* iPad responsive tweaks */
+  /* smaller form factors; desktop layout untouched */
   @media (max-width: 1024px) {
-    .grid { grid-template-columns: 1fr; }
-    .page { padding: 14px; gap: 12px; overflow-y: auto; }
+    .grid { grid-template-columns: 1fr; flex: none; }
+    .page { padding: 14px; gap: 12px; overflow-y: auto;
+      padding-top: calc(14px + env(safe-area-inset-top));
+      padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
     html, body { overflow: auto; }
     .big-price { font-size: 42px; }
     .price-card { padding: 20px; }
     .rates-cols { gap: 16px; }
+    .chart-card { flex: none; }
+    .chart-body { height: 230px; flex: none; }
   }
   @media (max-width: 600px) {
+    .page { padding-left: 12px; padding-right: 12px; padding-top: calc(12px + env(safe-area-inset-top));
+      padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
     .rates-cols { grid-template-columns: 1fr; }
     .big-price { font-size: 36px; }
+    .chart-body { height: 190px; }
+    .metal-btn { padding: 8px 14px; font-size: 11px; }
+    .icon-btn { padding: 10px 16px; font-size: 14px; }
+    .crumb { font-size: 12px; }
+    .crumb-sep { font-size: 12px; }
   }
 </style>
 <script>
@@ -275,8 +328,8 @@
     <span class="header-title">Jerusalem Jewelry Tracker</span>
     <div class="header-right">
       <span class="last-update" id="lastUpdate"></span>
-      <button class="icon-btn" onclick="refresh()">⟳</button>
-      <button class="icon-btn" onclick="openSettings()">⚙ Settings</button>
+      <button class="icon-btn" onclick="refresh()" aria-label="Refresh prices">⟳</button>
+      <button class="icon-btn" onclick="openSettings()" aria-label="Open settings">⚙ Settings</button>
     </div>
   </div>
 
@@ -323,29 +376,32 @@
         </div>
       </div>
 
-      <!-- CHART -->
+      <!-- CHART: month → day → hour drill-down -->
       <div class="chart-card">
         <div class="chart-head">
-          <span class="section-label">7-DAY TREND</span>
+          <nav class="crumbs" id="crumbs" aria-label="Chart period"></nav>
           <div class="metal-toggle">
             <button class="metal-btn active" data-metal="XAU" onclick="setMetal('XAU')">GOLD</button>
             <button class="metal-btn" data-metal="XAG" onclick="setMetal('XAG')">SILVER</button>
           </div>
         </div>
-        <canvas id="chart"></canvas>
+        <div class="chart-body">
+          <canvas id="chart" aria-label="Price trend chart" role="img"></canvas>
+          <div class="chart-empty" id="chartEmpty" hidden></div>
+        </div>
       </div>
     </div>
 
     <!-- RATES -->
     <div class="rates-card">
-      <div class="rates-header"><span class="rates-title">MARKET RATES</span></div>
+      <div class="rates-header"><span class="rates-title">Market rates</span></div>
       <div class="rates-cols">
         <div class="rate-col">
-          <span class="section-label">SELL</span>
+          <span class="rate-col-label">Sell</span>
           <div id="sellList"></div>
         </div>
         <div class="rate-col">
-          <span class="section-label">BUY (SCRAP)</span>
+          <span class="rate-col-label">Buy (scrap)</span>
           <div id="buyList"></div>
         </div>
       </div>
@@ -355,43 +411,40 @@
 
 <!-- SETTINGS MODAL -->
 <div class="overlay" id="overlay">
-  <div class="modal">
+  <div class="modal" id="settingsModal" tabindex="-1">
     <div class="modal-header">
-      <span class="modal-title">Admin Settings</span>
-      <button class="close-btn" onclick="closeSettings()">✕</button>
+      <span class="modal-title">Admin settings</span>
+      <button class="close-btn" onclick="closeSettings()" aria-label="Close settings">✕</button>
     </div>
-    <label class="field-label">DATA SOURCE</label>
+    <label class="field-label" for="srcSelect">Data source</label>
     <select class="field-select" id="srcSelect">
       <option value="live">Live</option>
-      <option value="demo">Demo (Random)</option>
+      <option value="demo">Demo (random)</option>
     </select>
     <div class="toggle-row">
-      <div><div class="toggle-title">Manual Price Override</div><div class="toggle-desc">Disable live feed completely</div></div>
-      <button class="toggle-btn" id="manualToggle" onclick="toggleManual()">OFF</button>
+      <div><div class="toggle-title">Manual price override</div><div class="toggle-desc">Disable live feed completely</div></div>
+      <button class="toggle-btn" id="manualToggle" onclick="toggleManual()" aria-pressed="false">OFF</button>
     </div>
     <input class="field-input" type="number" id="manualInput" placeholder="Enter custom gold price ($)" style="display:none" oninput="onManualInput()">
-    <label class="field-label">POLL INTERVAL (seconds)</label>
+    <label class="field-label" for="pollInput">Poll interval (seconds)</label>
     <input class="field-input" type="number" id="pollInput" value="10" min="5" max="300">
-    <label class="field-label">APPEARANCE</label>
+    <label class="field-label">Appearance</label>
     <div class="toggle-row">
-      <div><div class="toggle-title">Dark Mode</div><div class="toggle-desc">Revamp the entire interface</div></div>
-      <button class="toggle-btn" id="darkToggle" onclick="toggleDark()">OFF</button>
+      <div><div class="toggle-title">Dark mode</div><div class="toggle-desc">Easier on the eyes at night</div></div>
+      <button class="toggle-btn" id="darkToggle" onclick="toggleDark()" aria-pressed="false">OFF</button>
     </div>
-    <button class="test-btn" onclick="testConn()">Test Connection</button>
+    <button class="test-btn" onclick="testConn()">Test connection</button>
     <pre class="debug-box" id="debugBox"></pre>
-    <button class="save-btn" onclick="saveSettings()">Save & Close</button>
+    <button class="save-btn" onclick="saveSettings()">Save &amp; Close</button>
   </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
-// ── State ──────────────────────────────────────────────
-// Obfuscated API key (XOR + Base64), assembled at runtime.
-// NOTE: client-side obfuscation is NOT security. The decoded key is still
-// recoverable by anyone who opens devtools or inspects the network request —
-// it only keeps the raw key out of plain sight in the source. For real
-// protection the key must live behind a server-side proxy, never in the client.
-function _dk(b64, salt) {
+// ── API key ────────────────────────────────────────────
+// Hardcoded by design: the app serves a small, trusted user group, so the
+// key lives inline (XOR + Base64 keeps it out of plain sight in the source).
+function xorObfuscate(b64, salt) {
   const raw = atob(b64);
   let out = "";
   for (let i = 0; i < raw.length; i++) {
@@ -399,29 +452,35 @@ function _dk(b64, salt) {
   }
   return out;
 }
-const HARDCODED_KEY = _dk(
+const HARDCODED_KEY = xorObfuscate(
   "fk4KVTBFACpCABU5LRkJDGZGUH8QA0VoKElfWDAUUH8V" +
   "DkdueRkPCTdCB3wVBkZvfBkBWDdEUylDVhY8Lk4LDg==",
   "Kx9mVp2Lq7wZ"
 );
 function apiKey() { return HARDCODED_KEY; }
 
+function spotUrl(sym) { return "https://api.gold-api.com/price/" + sym; }
+function apiHeaders() { return { "Content-Type": "application/json", "x-api-key": apiKey() }; }
+
+// ── Constants ──────────────────────────────────────────
+// (chart data constants live inside the Series module)
 const GOLD_LINE = "#f59e0b";
 const SILVER_LINE = "#64748b";
-const HIST_DAYS = 7;
-const HIST_WINDOW_MS = HIST_DAYS * 24 * 60 * 60 * 1000;
-const HIST_CACHE_TTL = 60 * 60 * 1000;          // cache history 1h (stays under rate limits)
 
+// ── State ──────────────────────────────────────────────
 let prices = { XAU: 4220, XAG: 50 };
-let currentMetal = "XAU";
-let currentLineColor = GOLD_LINE;
 let marketOpen = true;
 let lastPrice = null;
 let unchangedCount = 0;
 let pollTimer = null;
 let chartTimer = null;
-let chart;
-let chartPts = [];   // [ts, price] currently plotted (for tooltip time labels)
+let chart = null;
+let chartPts = [];        // [{ts, price}] currently plotted
+let lastFocused = null;
+
+// Chart drill-down view: month (30 daily points) → day (24 hourly points)
+// → hour (10-minute points). Breadcrumbs in the chart head navigate back.
+let view = { metal: "XAU", level: "month", dayTs: null, hourTs: null };
 
 let settings = {
   dataSource: "live",
@@ -430,26 +489,47 @@ let settings = {
   dark: false,
 };
 
+// Modal DOM references, cached once on init (modalInputs.modal included)
+let modalInputs = {
+  overlay: null,
+  modal: null,
+  srcSelect: null,
+  manualToggle: null,
+  manualInput: null,
+  pollInput: null,
+  darkToggle: null,
+};
+
 // Load settings from localStorage
 try {
   const saved = localStorage.getItem("jjtrader_settings");
   if (saved) settings = { ...settings, ...JSON.parse(saved) };
 } catch (e) {}
-delete settings.apiKey;                                   // key is hardcoded now
 if (settings.dataSource !== "demo") settings.dataSource = "live"; // migrate free/pro
 
 // ── Init ───────────────────────────────────────────────
 window.addEventListener("DOMContentLoaded", () => {
+  modalInputs.overlay = document.getElementById("overlay");
+  modalInputs.modal = document.getElementById("settingsModal");
+  modalInputs.srcSelect = document.getElementById("srcSelect");
+  modalInputs.manualToggle = document.getElementById("manualToggle");
+  modalInputs.manualInput = document.getElementById("manualInput");
+  modalInputs.pollInput = document.getElementById("pollInput");
+  modalInputs.darkToggle = document.getElementById("darkToggle");
+
   applyTheme();
-  initChart();
+  try { initChart(); } catch (e) { chartUnavailable(); }
   updateUI();
-  buildChart(currentMetal);
-  startPolling();
-  // Refresh the historical series every 5 min (not a live "now" tick).
-  chartTimer = setInterval(() => buildChart(currentMetal), 30 * 60 * 1000);
+  if (chart) {
+    buildLevel(view.level);
+    chartTimer = setInterval(() => buildLevel(view.level), 30 * 60 * 1000); // refresh series every 30 min
+  }
+  startPolling();   // runs even if the chart library failed — prices stay live
 });
 
+// ── Chart setup ────────────────────────────────────────
 function initChart() {
+  if (typeof Chart === "undefined") { chartUnavailable(); return; }
   const ctx = document.getElementById("chart").getContext("2d");
   const c = chartColors();
   chart = new Chart(ctx, {
@@ -458,22 +538,25 @@ function initChart() {
       labels: [],
       datasets: [{
         data: [],
-        borderColor: currentLineColor,
+        borderColor: GOLD_LINE,
         borderWidth: 2.5,
         fill: true,
         backgroundColor: (ctx) => {
           const g = ctx.chart.ctx.createLinearGradient(0, 0, 0, ctx.chart.height);
-          g.addColorStop(0, hexToRgba(currentLineColor, 0.30));
-          g.addColorStop(1, hexToRgba(currentLineColor, 0));
+          g.addColorStop(0, hexToRgba(currentLineColor(), 0.30));
+          g.addColorStop(1, hexToRgba(currentLineColor(), 0));
           return g;
         },
         tension: 0.3,
         pointRadius: 0,
+        pointHitRadius: 12,
       }],
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      resizeDelay: 120,   // debounce resize-driven redraws on rotation
+      animation: { duration: 350, easing: "easeOutQuart" },
       plugins: {
         legend: { display: false },
         tooltip: {
@@ -481,7 +564,7 @@ function initChart() {
             title: (items) => {
               if (!items.length) return "";
               const p = chartPts[items[0].dataIndex];
-              return p && p[0] != null ? fmtFull(p[0]) : (items[0].label || "");
+              return p ? fmtTooltipTitle(p.ts) : "";
             },
             label: (item) => "$" + Number(item.parsed.y).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
           },
@@ -489,7 +572,7 @@ function initChart() {
       },
       scales: {
         x: {
-          ticks: { color: c.tick, font: { size: 10 }, maxTicksLimit: 8, maxRotation: 0, autoSkip: true },
+          ticks: { color: c.tick, font: { size: 10 }, maxTicksLimit: 6, maxRotation: 0, autoSkip: true },
           grid: { display: false },
         },
         y: {
@@ -498,194 +581,321 @@ function initChart() {
         },
       },
       interaction: { intersect: false, mode: "index" },
+      onClick: (e, els) => {
+        if (!els.length) return;
+        const pt = chartPts[els[0].index];
+        if (!pt) return;
+        if (view.level === "month") buildLevel("day", startOfDay(pt.ts));
+        else if (view.level === "day") buildLevel("hour", hourStart(pt.ts));
+      },
+      onHover: (e, els) => {
+        e.native.target.style.cursor = (els.length && view.level !== "hour") ? "pointer" : "default";
+      },
     },
   });
 }
 
-// ── Historical chart ───────────────────────────────────
-// gold-api.com /history: requires x-api-key, free tier = 10 req/hr, and on the
-// free tier the finest grouping is "day" (hour/minute are premium). We pull the
-// last 3 days grouped by day and cache the result for an hour to stay under the
-// rate limit. If the call fails we fall back to locally recorded prices.
-async function buildChart(metal) {
-  const now = Date.now();
-  let pts = null;
-
-  const cache = loadHistCache(metal);
-  if (cache && now - cache.ts < HIST_CACHE_TTL && cache.pts.length >= 2) {
-    pts = cache.pts;                              // fresh cache: no API call
-  } else {
-    const apiPts = await fetchApiHistory(metal);
-    if (apiPts && apiPts.length >= 2) {
-      pts = apiPts;
-      saveHistCache(metal, apiPts);
-    } else if (cache && cache.pts.length >= 2) {
-      pts = cache.pts;                            // stale cache beats nothing
-    }
-  }
-
-  // Fallback: locally recorded observations.
-  if (!pts || pts.length < 2) {
-    const cutoff = now - HIST_WINDOW_MS;
-    const loc = loadLocalHist(metal).filter(p => p[0] >= cutoff).sort((a, b) => a[0] - b[0]);
-    if (loc.length >= 2) pts = loc;
-  }
-  // Last resort: flat baseline so the chart isn't blank.
-  if (!pts || pts.length < 2) {
-    const cur = prices[metal];
-    pts = [];
-    for (let i = HIST_DAYS; i >= 0; i--) pts.push([now - i * 86400000, cur]);
-  }
-
-  pts = downsampleTo(pts, 1); // one point per hour
-  renderChartSeries(metal, pts);
+function chartUnavailable() {
+  chart = null;
+  const el = document.getElementById("chartEmpty");
+  el.hidden = false;
+  el.innerHTML = "Chart unavailable<span class='chart-empty-hint'>Prices still update live</span>";
 }
 
-async function fetchApiHistory(sym) {
-  const key = apiKey();
-  if (!key) return null;                          // /history requires a key
-  const end = Math.floor(Date.now() / 1000);      // Unix seconds
-  const start = end - HIST_DAYS * 24 * 60 * 60;   // window back
-  // Prefer hourly buckets (premium) so hovering shows intra-day detail; fall
-  // back to daily if hourly isn't available on the current plan.
-  for (const groupBy of ["hour", "day"]) {
-    const url = `https://api.gold-api.com/history?symbol=${sym}`
-              + `&startTimestamp=${start}&endTimestamp=${end}`
-              + `&groupBy=${groupBy}&aggregation=avg&orderBy=asc`;
+function currentLineColor() { return view.metal === "XAG" ? SILVER_LINE : GOLD_LINE; }
+
+// ── Series: chart data acquisition module ──────────────
+// One deep module behind a two-function interface:
+//   Series.get({ metal, level, dayTs, hourTs, nowPrice }) → { pts, source }
+//   Series.record(sym, price)
+// source: 'cache' | 'api' | 'local' | 'interpolated' | 'baseline' | 'none'
+// Fallback ladder (cache → API → local observations → interpolation →
+// baseline) concentrates here. Navigation state stays with the caller;
+// cache keys, parsers, providers, and the local-history store are private.
+const Series = (function () {
+  const MONTH_DAYS = 30;
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  const HOUR_MS = 60 * 60 * 1000;
+  const HIST_WINDOW_MS = 7 * DAY_MS;               // local observation window
+  const HIST_CACHE_TTL = 60 * 60 * 1000;           // history cache: 1 hour (stays under rate limits)
+
+  function chartCacheKey(level, metal, anchor) {
+    let k = "jjtrader_chart_" + level + "_" + metal;
+    if (anchor != null) k += "_" + anchor;
+    return k;
+  }
+  function loadCache(key, ttlMs = Infinity) {
+    try {
+      const v = JSON.parse(localStorage.getItem(key));
+      if (v && Array.isArray(v.pts) && Date.now() - v.ts < ttlMs) return v.pts;
+    } catch (e) {}
+    return null;
+  }
+  function saveCache(key, pts) {
+    try { localStorage.setItem(key, JSON.stringify({ ts: Date.now(), pts })); } catch (e) {}
+  }
+
+  // ── Local rolling history (10-min resolution) ─────────
+  function histKey(sym) { return "jjtrader_hist_" + sym; }
+  function loadLocalHist(sym) {
+    try { const v = JSON.parse(localStorage.getItem(histKey(sym))); return Array.isArray(v) ? v : []; }
+    catch (e) { return []; }
+  }
+  function saveLocalHist(sym, arr) {
+    try { localStorage.setItem(histKey(sym), JSON.stringify(arr)); } catch (e) {}
+  }
+  function localPoints(sym) {
+    return loadLocalHist(sym)
+      .filter(p => Array.isArray(p) && p[0] != null && isFinite(p[1]))
+      .map(([ts, price]) => ({ ts, price }))
+      .sort((a, b) => a.ts - b.ts);
+  }
+  function recordObservation(sym, price) {
+    if (!isFinite(price)) return;
+    const now = Date.now();
+    let h = loadLocalHist(sym);
+    const last = h[h.length - 1];
+    if (last && now - last[0] < 10 * 60 * 1000) {
+      last[1] = price;                 // update most recent point (<=10 min old)
+    } else {
+      h.push([now, price]);            // otherwise add a new point
+    }
+    h = h.filter(p => p[0] >= now - HIST_WINDOW_MS);
+    saveLocalHist(sym, h);
+  }
+
+  async function fetchHistory(sym, startMs, endMs, groupBy) {
+    const key = apiKey();
+    if (!key) return null;
+    const url = "https://api.gold-api.com/history?symbol=" + sym
+              + "&startTimestamp=" + Math.floor(startMs / 1000)
+              + "&endTimestamp=" + Math.floor(endMs / 1000)
+              + "&groupBy=" + groupBy + "&aggregation=avg&orderBy=asc";
     try {
       const res = await fetch(url, { headers: { "x-api-key": key } });
-      if (!res.ok) continue;
+      if (!res.ok) return null;
       const data = await res.json();
-      const pts = normalizeHistory(data);
-      // Hourly is only useful with real timestamps; otherwise try daily.
-      if (pts.length && (groupBy === "day" || pts.some(p => p[0] != null))) return pts;
-    } catch (e) { /* try next grouping */ }
+      return normalizeHistory(data).filter(p => p.ts != null && isFinite(p.price));
+    } catch (e) { return null; }
   }
-  return null;
-}
 
-// Response is an array of buckets, each with a period field (day/month/...) and
-// a price field (avg_price/max_price/min_price depending on aggregation).
-function normalizeHistory(data) {
-  let arr = Array.isArray(data)
-    ? data
-    : (data && (data.data || data.history || data.results || data.prices || data.items)) || [];
-  if (!Array.isArray(arr)) return [];
-  const pts = [];
-  for (const item of arr) {
-    if (item == null) continue;
-    let price, ts = null;
-    if (typeof item === "number") {
-      price = item;
-    } else {
-      price = Number(
-        item.avg_price ?? item.max_price ?? item.min_price ??
-        item.price ?? item.value ?? item.close ?? item.rate
-      );
-      ts = parseTimeField(item);
+  // Response is an array of buckets, each with a period field (day/month/...) and
+  // a price field (avg_price/max_price/min_price depending on aggregation).
+  function normalizeHistory(data) {
+    let arr = Array.isArray(data)
+      ? data
+      : (data && (data.data || data.history || data.results || data.prices || data.items)) || [];
+    if (!Array.isArray(arr)) return [];
+    const pts = [];
+    for (const item of arr) {
+      if (item == null) continue;
+      let price, ts = null;
+      if (typeof item === "number") {
+        price = item;
+      } else {
+        price = Number(
+          item.avg_price ?? item.max_price ?? item.min_price ??
+          item.price ?? item.value ?? item.close ?? item.rate
+        );
+        ts = parseTimeField(item);
+      }
+      if (!isFinite(price)) continue;
+      pts.push({ ts, price });
     }
-    if (!isFinite(price)) continue;
-    pts.push([ts, price]);
+    return pts;
   }
-  return pts;
-}
 
-function parseTimeField(item) {
-  // Prefer full timestamps and finer period fields so hourly buckets keep their
-  // hour-of-day (a coarse "day" field would collapse everything to 00:00).
-  const v = item.timestamp ?? item.datetime ?? item.time ?? item.t
-         ?? item.minute ?? item.hour
-         ?? item.day ?? item.week ?? item.month ?? item.year
-         ?? item.date;
-  if (v == null) return null;
-  if (typeof v === "number") {
-    if (v >= 1e12) return v;                       // already ms
-    if (v >= 1e9) return v * 1000;                 // seconds -> ms
-    return null;                                   // small int bucket index, not a date
+  function parseTimeField(item) {
+    // Prefer full timestamps and finer period fields so hourly buckets keep their
+    // hour-of-day (a coarse "day" field would collapse everything to 00:00).
+    const v = item.timestamp ?? item.datetime ?? item.date_hour ?? item.time ?? item.t
+           ?? item.minute ?? item.hour
+           ?? item.day ?? item.week ?? item.month ?? item.year
+           ?? item.date;
+    if (v == null) return null;
+    if (typeof v === "number") {
+      if (v >= 1e12) return v;                       // already ms
+      if (v >= 1e9) return v * 1000;                 // seconds -> ms
+      return null;                                   // small int bucket index, not a date
+    }
+    // The API returns UTC buckets as "2026-09-18 14" or "2026-09-18 14:00:00".
+    // Space-separated form is not strict ISO, so parse it explicitly as UTC
+    // rather than leaving it to browser-dependent Date.parse behavior.
+    const m = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2})(?::(\d{2}))?(?::(\d{2}))?$/.exec(String(v).trim());
+    if (m) return Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +(m[5] || 0), +(m[6] || 0));
+    const parsed = Date.parse(v);                    // ISO / date string
+    return isFinite(parsed) ? parsed : null;
   }
-  const parsed = Date.parse(v);                    // ISO / date string
-  return isFinite(parsed) ? parsed : null;
-}
 
-// Collapse points into fixed-width time bins (averaging), e.g. 2-hour buckets.
-// Daily-spaced data passes through unchanged (one point per bin).
-function downsampleTo(pts, hours) {
-  if (hours < 1) return pts;
-  const withTs = pts.filter(p => p[0] != null && isFinite(p[1]));
-  if (withTs.length < 2) return pts;               // no usable timestamps
-  const binMs = hours * 3600 * 1000;
-  const bins = new Map();
-  for (const [ts, price] of withTs) {
-    const bin = Math.floor(ts / binMs) * binMs;
-    const e = bins.get(bin);
-    if (e) { e.sum += price; e.n++; }
-    else bins.set(bin, { sum: price, n: 1 });
+  // Collapse {ts, price} points into fixed-width time bins (averaging).
+  function downsamplePoints(pts, hours) {
+    if (hours < 1) return pts;
+    const usable = pts.filter(p => p.ts != null && isFinite(p.price));
+    if (usable.length < 2) return pts;
+    const binMs = hours * HOUR_MS;
+    const bins = new Map();
+    for (const p of usable) {
+      const bin = Math.floor(p.ts / binMs) * binMs;
+      const b = bins.get(bin);
+      if (b) { b.sum += p.price; b.n++; }
+      else bins.set(bin, { sum: p.price, n: 1 });
+    }
+    return [...bins.entries()].sort((a, b) => a[0] - b[0]).map(([ts, b]) => ({ ts, price: b.sum / b.n }));
   }
-  return [...bins.entries()].sort((a, b) => a[0] - b[0]).map(([ts, e]) => [ts, e.sum / e.n]);
+
+  async function loadMonth(metal, nowPrice) {
+    const key = chartCacheKey("month", metal);
+    const cached = loadCache(key, HIST_CACHE_TTL);
+    if (cached && cached.length >= 2) return { pts: cached, source: "cache" };
+
+    const now = Date.now();
+    const apiPts = await fetchHistory(metal, now - MONTH_DAYS * DAY_MS, now, "day");
+    if (apiPts && apiPts.length >= 2) { saveCache(key, apiPts); return { pts: apiPts, source: "api" }; }
+
+    const loc = downsamplePoints(localPoints(metal), 24);
+    if (loc.length >= 2) return { pts: loc, source: "local" };
+
+    const pts = [];
+    for (let i = MONTH_DAYS; i >= 0; i--) pts.push({ ts: now - i * DAY_MS, price: nowPrice });
+    return { pts, source: "baseline" };
+  }
+
+  async function loadDay(metal, dayTs) {
+    const now = Date.now();
+    if (dayTs == null || dayTs > now) return { pts: null, source: "none" };
+    const dayEnd = Math.min(dayTs + DAY_MS, now);
+
+    const key = chartCacheKey("day", metal, dayTs);
+    const cached = loadCache(key, HIST_CACHE_TTL);
+    if (cached && cached.length >= 2) return { pts: cached, source: "cache" };
+
+    const apiPts = await fetchHistory(metal, dayTs, dayEnd, "hour");
+    if (apiPts && apiPts.length >= 2) { saveCache(key, apiPts); return { pts: apiPts, source: "api" }; }
+
+    const loc = downsamplePoints(
+      localPoints(metal).filter(p => p.ts >= dayTs && p.ts < dayTs + DAY_MS), 1
+    );
+    if (loc.length >= 2) return { pts: loc, source: "local" };
+
+    return { pts: null, source: "none" };   // market closed / no data
+  }
+
+  async function loadHour(metal, dayTs, hourTs) {
+    if (hourTs == null) return { pts: null, source: "none" };
+    const endEx = hourTs + HOUR_MS;
+
+    // Best source: real recorded observations at native 10-minute resolution.
+    const loc = localPoints(metal).filter(p => p.ts >= hourTs && p.ts < endEx);
+    if (loc.length >= 2) return { pts: loc, source: "local" };
+
+    // Otherwise: stretch the hour's API bucket across the hour. The day's data
+    // comes from cache when present, else straight from the API.
+    let dayPts = loadCache(chartCacheKey("day", metal, dayTs));
+    if (!dayPts && dayTs != null && dayTs <= Date.now()) {
+      const now = Date.now();
+      const fetched = await fetchHistory(metal, dayTs, Math.min(dayTs + DAY_MS, now), "hour");
+      if (fetched && fetched.length >= 2) {
+        saveCache(chartCacheKey("day", metal, dayTs), fetched);
+        dayPts = fetched;
+      }
+    }
+    const bucket = (dayPts || []).find(p => p.ts >= hourTs && p.ts < endEx);
+    if (bucket) {
+      const pts = [];
+      for (let m = 0; m < 60; m += 10) pts.push({ ts: hourTs + m * 60000, price: bucket.price });
+      return { pts, source: "interpolated" };
+    }
+    return { pts: null, source: "none" };
+  }
+
+  async function get(spec) {
+    if (spec.level === "month") return loadMonth(spec.metal, spec.nowPrice);
+    if (spec.level === "day") return loadDay(spec.metal, spec.dayTs);
+    return loadHour(spec.metal, spec.dayTs, spec.hourTs);
+  }
+
+  return { get, record: recordObservation };
+})();
+window.__tracker = { getSeries: Series.get };   // debug/test handle: the module seam
+
+let buildSeq = 0;
+async function buildLevel(level, anchor) {
+  const seq = ++buildSeq;
+  if (level === "day" && anchor != null) view.dayTs = anchor;
+  if (level === "hour" && anchor != null) view.hourTs = anchor;
+  view.level = level;
+  const { pts } = await Series.get({ metal: view.metal, level, dayTs: view.dayTs, hourTs: view.hourTs, nowPrice: prices[view.metal] });
+  if (seq !== buildSeq) return;   // a newer navigation superseded this render
+  renderLevel(pts);
 }
 
-// ── History cache (protects the 10 req/hr free limit) ──
-function histCacheKey(sym) { return "jjtrader_histcache_v2_" + HIST_DAYS + "d_" + sym; }
-function loadHistCache(sym) {
-  try {
-    const v = JSON.parse(localStorage.getItem(histCacheKey(sym)));
-    return v && Array.isArray(v.pts) ? v : null;
-  } catch (e) { return null; }
+// ── Chart rendering ────────────────────────────────────
+function fmtDayLabel(ts) { const d = new Date(ts); return (d.getMonth() + 1) + "/" + d.getDate(); }
+function fmtHourLabel(ts) { const d = new Date(ts); return pad(d.getHours()) + ":00"; }
+function fmtMinLabel(ts) { const d = new Date(ts); return pad(d.getHours()) + ":" + pad(d.getMinutes()); }
+function fmtTooltipTitle(ts) {
+  if (view.level === "month") return fmtDayLabel(ts);
+  if (view.level === "day") return fmtDayLabel(ts) + ", " + fmtHourLabel(ts);
+  return fmtDayLabel(ts) + ", " + fmtMinLabel(ts);
 }
-function saveHistCache(sym, pts) {
-  try { localStorage.setItem(histCacheKey(sym), JSON.stringify({ ts: Date.now(), pts })); }
-  catch (e) {}
-}
+function startOfDay(ts) { const d = new Date(ts); d.setHours(0, 0, 0, 0); return d.getTime(); }
+function hourStart(ts) { const d = new Date(ts); d.setMinutes(0, 0, 0); return d.getTime(); }
 
-function renderChartSeries(metal, pts) {
+function renderLevel(pts) {
+  const empty = document.getElementById("chartEmpty");
+  if (!chart) return;
+  if (!pts || pts.length < 2) {
+    empty.hidden = false;
+    empty.innerHTML = view.level === "day"
+      ? "No market data for this day"
+      : "No data recorded for this hour yet<span class='chart-empty-hint'>Detail accumulates while the tracker runs</span>";
+    chart.data.labels = [];
+    chart.data.datasets[0].data = [];
+    chartPts = [];
+    renderCrumbs();
+    chart.update("none");
+    return;
+  }
+  document.getElementById("chartEmpty").hidden = true;
   chartPts = pts;
-  currentLineColor = metal === "XAG" ? SILVER_LINE : GOLD_LINE;
-  const anyTs = pts.some(p => p[0] != null);
-  let labels;
-  if (anyTs) {
-    labels = pts.map(p => (p[0] != null ? fmtTick(p[0]) : ""));
-  } else {
-    // No usable timestamps: approximate daily labels ending today.
-    const n = pts.length;
-    labels = pts.map((p, i) => {
-      const d = new Date(Date.now() - (n - 1 - i) * 86400000);
-      return (d.getMonth() + 1) + "/" + d.getDate();
-    });
-  }
-  chart.data.labels = labels;
-  chart.data.datasets[0].data = pts.map(p => Math.round(p[1] * 100) / 100);
-  chart.data.datasets[0].borderColor = currentLineColor;
+  chart.data.labels = pts.map(p =>
+    view.level === "month" ? fmtDayLabel(p.ts)
+    : view.level === "day" ? fmtHourLabel(p.ts)
+    : fmtMinLabel(p.ts)
+  );
+  chart.data.datasets[0].data = pts.map(p => Math.round(p.price * 100) / 100);
+  chart.data.datasets[0].borderColor = currentLineColor();
   applyChartTheme();
-  chart.update("none");
+  renderCrumbs();
+  chart.update();   // animated swap gives the smooth drill transition
 }
+
+function renderCrumbs() {
+  const el = document.getElementById("crumbs");
+  const monthBtn = "<button class='crumb' data-level='month'>Past 30 days</button>";
+  if (view.level === "month") {
+    el.innerHTML = "<span class='crumb'>Past 30 days</span>";
+  } else if (view.level === "day") {
+    el.innerHTML = monthBtn
+      + "<span class='crumb-sep'>›</span><span class='crumb'>" + fmtDayLabel(view.dayTs) + "</span>";
+  } else {
+    el.innerHTML = monthBtn
+      + "<span class='crumb-sep'>›</span><button class='crumb' data-level='day'>" + fmtDayLabel(view.dayTs) + "</button>"
+      + "<span class='crumb-sep'>›</span><span class='crumb'>" + fmtHourLabel(view.hourTs) + "</span>";
+  }
+}
+
+// Breadcrumb back-navigation
+document.getElementById("crumbs").addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-level]");
+  if (!btn) return;
+  buildLevel(btn.dataset.level);
+});
 
 function setMetal(m) {
-  currentMetal = m;
+  view.metal = m;
   document.querySelectorAll(".metal-btn").forEach(b => b.classList.toggle("active", b.dataset.metal === m));
-  buildChart(m);
-}
-
-// ── Local rolling history (resilient real-data source) ──
-function histKey(sym) { return "jjtrader_hist_" + sym; }
-function loadLocalHist(sym) {
-  try { const v = JSON.parse(localStorage.getItem(histKey(sym))); return Array.isArray(v) ? v : []; }
-  catch (e) { return []; }
-}
-function saveLocalHist(sym, arr) {
-  try { localStorage.setItem(histKey(sym), JSON.stringify(arr)); } catch (e) {}
-}
-function recordObservation(sym, price) {
-  if (!isFinite(price)) return;
-  const now = Date.now();
-  let h = loadLocalHist(sym);
-  const last = h[h.length - 1];
-  if (last && now - last[0] < 10 * 60 * 1000) {
-    last[1] = price;                 // update most recent point (<=10 min old)
-  } else {
-    h.push([now, price]);            // otherwise add a new point
-  }
-  h = h.filter(p => p[0] >= now - HIST_WINDOW_MS);
-  saveLocalHist(sym, h);
+  buildLevel(view.level);
 }
 
 // ── Formatting ─────────────────────────────────────────
@@ -693,14 +903,6 @@ function fmt(v, d = 0) {
   return "$" + v.toFixed(d).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 function pad(n) { return String(n).padStart(2, "0"); }
-function fmtTick(ts) {
-  const d = new Date(ts);
-  return (d.getMonth() + 1) + "/" + d.getDate();
-}
-function fmtFull(ts) {
-  const d = new Date(ts);
-  return (d.getMonth() + 1) + "/" + d.getDate() + ", " + pad(d.getHours()) + ":00";
-}
 function hexToRgba(hex, a) {
   const m = hex.replace("#", "");
   const r = parseInt(m.substring(0, 2), 16);
@@ -712,32 +914,39 @@ function roundSell(v) { return Math.round(v / 5) * 5; }
 function roundBuy(v) { return Math.floor(v / 2) * 2; }
 
 // ── Calculations (gold) ────────────────────────────────
-function calcSell(x) {
-  const y = (x + 15) * 32.15, z = x + 150;
-  const lira21 = ((y * 0.88 / 1000) + 1) * 8 + 20;
+// Rate formulas are the owner's market math — do not change the arithmetic.
+function calcSell(xau) {
+  const gram = (xau + 15) * 32.15, ounceSell = xau + 150;
+  const lira21 = ((gram * 0.88 / 1000) + 1) * 8 + 20;
   return [
     { name: "Lira", k: "21K", p: roundSell(lira21), buy: false },
-    { name: "Lira", k: "22K", p: roundSell(x * 0.2354 + 70), buy: false },
-    { name: "Ounce", k: "24K", p: roundSell(z), buy: false },
+    { name: "Lira", k: "22K", p: roundSell(xau * 0.2354 + 70), buy: false },
+    { name: "Ounce", k: "24K", p: roundSell(ounceSell), buy: false },
     { name: "Makhamsia", k: "21K", p: roundSell(lira21 * 5 + 50), buy: false },
     { name: "Rashady", k: "21K", p: roundSell((lira21 / 8) * 7 + 5), buy: false },
-    { name: "50 Pesos", k: "21.6K", p: roundSell(x * 1.2057 * 1.026 + 120), buy: false },
-    { name: "Khairy", k: "21K", p: roundSell(((x * 32.15 * 0.88) / 1000) * 1.3), buy: false },
+    { name: "50 Pesos", k: "21.6K", p: roundSell(xau * 1.2057 * 1.026 + 120), buy: false },
+    { name: "Khairy", k: "21K", p: roundSell(((xau * 32.15 * 0.88) / 1000) * 1.3), buy: false },
   ];
 }
 
-function calcBuy(x) {
-  const g = x / 31.1;
+function calcBuy(xau) {
+  const gram = xau / 31.1;
   return [
-    { name: "22k", k: "22K", p: roundBuy(g * 0.90 - 12) },
-    { name: "21k", k: "21K", p: roundBuy(g * 0.87 - 12) },
-    { name: "18k", k: "18K", p: roundBuy(g * 0.74 - 12) },
-    { name: "14k", k: "14K", p: roundBuy(g * 0.58 - 12) },
-    { name: "10k", k: "10K", p: roundBuy(g * 0.41 - 12) },
+    { name: "22k", k: "22K", p: roundBuy(gram * 0.90 - 12) },
+    { name: "21k", k: "21K", p: roundBuy(gram * 0.87 - 12) },
+    { name: "18k", k: "18K", p: roundBuy(gram * 0.74 - 12) },
+    { name: "14k", k: "14K", p: roundBuy(gram * 0.58 - 12) },
+    { name: "10k", k: "10K", p: roundBuy(gram * 0.41 - 12) },
   ];
 }
 
 // ── UI Update ──────────────────────────────────────────
+function renderRates(items, rowClass, badgeClass, priceClass) {
+  return items.map(i =>
+    `<div class="${rowClass}"><div class="item-left"><span class="item-name">${i.name}</span><span class="${badgeClass}">${i.k}</span></div><span class="${priceClass}">${fmt(i.p)}</span></div>`
+  ).join("");
+}
+
 function updateUI() {
   // Gold
   document.getElementById("bigPrice").textContent = fmt(prices.XAU);
@@ -753,78 +962,78 @@ function updateUI() {
   document.getElementById("silverSell").textContent = fmt(prices.XAG + 9, 2);
   document.getElementById("silverBuy").textContent = fmt(prices.XAG - 2, 2);
 
-  // Sell (gold)
-  const sellHTML = calcSell(prices.XAU).map(i =>
-    `<div class="sell-row"><div class="item-left"><span class="item-name">${i.name}</span><span class="badge-gold">${i.k}</span></div><span class="item-price">${fmt(i.p)}</span></div>`
-  ).join("");
-  document.getElementById("sellList").innerHTML = sellHTML;
+  document.getElementById("sellList").innerHTML = renderRates(calcSell(prices.XAU), "sell-row", "badge-gold", "item-price");
+  document.getElementById("buyList").innerHTML = renderRates(calcBuy(prices.XAU), "buy-row", "badge-emerald", "buy-price");
+}
 
-  // Buy (gold scrap)
-  const buyHTML = calcBuy(prices.XAU).map(i =>
-    `<div class="buy-row"><div class="item-left"><span class="item-name">${i.name}</span><span class="badge-emerald">${i.k}</span></div><span class="buy-price">${fmt(i.p)}</span></div>`
-  ).join("");
-  document.getElementById("buyList").innerHTML = buyHTML;
+function setLastUpdate(text, offline) {
+  const el = document.getElementById("lastUpdate");
+  el.textContent = text;
+  el.classList.toggle("offline", !!offline);
 }
 
 // ── Fetch ──────────────────────────────────────────────
 async function fetchPrices() {
-  if (settings.manual) { updateUI(); return; }
+  if (settings.manual) {
+    setLastUpdate("Manual price");
+    updateUI();
+    return;
+  }
 
   if (settings.dataSource === "demo") {
     prices.XAU = Math.max(0, prices.XAU + (Math.random() - 0.5) * 4);
     prices.XAG = Math.max(0, prices.XAG + (Math.random() - 0.5) * 0.3);
-    recordObservation("XAU", prices.XAU);
-    recordObservation("XAG", prices.XAG);
-    document.getElementById("lastUpdate").textContent = "Updated " + new Date().toLocaleTimeString();
+    // Demo prices never enter the recorded history — they are not real data.
+    setLastUpdate("Updated " + new Date().toLocaleTimeString());
     updateUI();
     return;
   }
 
   try {
-    const [g, s] = await Promise.all([fetchOne("XAU"), fetchOne("XAG")]);
+    const [g, s] = await Promise.all([fetchSpot("XAU"), fetchSpot("XAG")]);
 
     if (g != null) {
       if (g === lastPrice) {
         unchangedCount++;
-        if (unchangedCount >= 6) { marketOpen = false; restartPolling(60); }
+        if (unchangedCount >= 6 && marketOpen) { marketOpen = false; restartPolling(60); }
       } else {
         unchangedCount = 0;
-        if (!marketOpen) { marketOpen = true; restartPolling(settings.pollInterval); }
+        if (!marketOpen) {
+          marketOpen = true;
+          restartPolling(settings.pollInterval);
+          fetchPrices();   // fetch immediately instead of waiting a full interval
+        }
       }
       lastPrice = g;
       prices.XAU = g;
-      recordObservation("XAU", g);
+      Series.record("XAU", g);
     }
     if (s != null) {
       prices.XAG = s;
-      recordObservation("XAG", s);
+      Series.record("XAG", s);
     }
 
-    document.getElementById("lastUpdate").textContent = "Updated " + new Date().toLocaleTimeString();
+    setLastUpdate("Updated " + new Date().toLocaleTimeString());
     updateUI();
   } catch (e) {
+    setLastUpdate("Offline — retrying", true);
     console.error("Fetch failed:", e.message);
   }
 }
 
-async function fetchOne(sym) {
-  const h = { "Content-Type": "application/json", "x-api-key": apiKey() };
-  const res = await fetch(`https://api.gold-api.com/price/${sym}`, { headers: h });
+async function fetchSpot(sym) {
+  const res = await fetch(spotUrl(sym), { headers: apiHeaders() });
   if (!res.ok) throw new Error("HTTP " + res.status);
   const data = await res.json();
   return data && data.price != null ? Number(data.price) : null;
 }
 
-function startPolling() {
-  clearInterval(pollTimer);
-  fetchPrices();
-  pollTimer = setInterval(fetchPrices, settings.pollInterval * 1000);
-}
 function restartPolling(sec) {
   clearInterval(pollTimer);
   pollTimer = setInterval(fetchPrices, sec * 1000);
 }
-function refresh() { fetchPrices(); buildChart(currentMetal); }
+function startPolling() { restartPolling(settings.pollInterval); fetchPrices(); }
+function refresh() { fetchPrices(); if (chart) buildLevel(view.level); }
 
 // ── Theme ──────────────────────────────────────────────
 function chartColors() {
@@ -848,43 +1057,49 @@ function applyTheme() {
 }
 function toggleDark() {
   settings.dark = !settings.dark;
-  syncDarkToggle();
+  syncToggle("darkToggle", settings.dark);
   applyTheme();
   try { localStorage.setItem("jjtrader_settings", JSON.stringify(settings)); } catch (e) {}
 }
-function syncDarkToggle() {
-  const t = document.getElementById("darkToggle");
-  t.textContent = settings.dark ? "ON" : "OFF";
-  t.classList.toggle("on", settings.dark);
-}
 
 // ── Settings ───────────────────────────────────────────
-function openSettings() {
-  document.getElementById("overlay").classList.add("open");
-  document.getElementById("srcSelect").value = settings.dataSource;
-  document.getElementById("pollInput").value = settings.pollInterval;
-  syncManualToggle();
-  syncDarkToggle();
-  document.getElementById("manualInput").style.display = settings.manual ? "block" : "none";
+function syncToggle(id, on) {
+  const t = document.getElementById(id);
+  t.textContent = on ? "ON" : "OFF";
+  t.classList.toggle("on", on);
+  t.setAttribute("aria-pressed", String(on));
 }
-function closeSettings() { document.getElementById("overlay").classList.remove("open"); }
+function syncManualInput() {
+  modalInputs.manualInput.style.display = settings.manual ? "block" : "none";
+}
+
+function openSettings() {
+  modalInputs.overlay.classList.add("open");
+  modalInputs.srcSelect.value = settings.dataSource;
+  modalInputs.pollInput.value = settings.pollInterval;
+  syncToggle("manualToggle", settings.manual);
+  syncToggle("darkToggle", settings.dark);
+  syncManualInput();
+  lastFocused = document.activeElement;
+  modalInputs.modal.focus();
+}
+function closeSettings() {
+  modalInputs.overlay.classList.remove("open");
+  if (lastFocused && lastFocused.focus) lastFocused.focus();
+}
 function toggleManual() {
   settings.manual = !settings.manual;
-  syncManualToggle();
-  document.getElementById("manualInput").style.display = settings.manual ? "block" : "none";
-}
-function syncManualToggle() {
-  const mt = document.getElementById("manualToggle");
-  mt.textContent = settings.manual ? "ON" : "OFF";
-  mt.classList.toggle("on", settings.manual);
+  syncToggle("manualToggle", settings.manual);
+  syncManualInput();
+  try { localStorage.setItem("jjtrader_settings", JSON.stringify(settings)); } catch (e) {}
 }
 function onManualInput() {
-  const v = parseFloat(document.getElementById("manualInput").value);
+  const v = parseFloat(modalInputs.manualInput.value);
   if (!isNaN(v) && v > 0) { prices.XAU = v; updateUI(); }
 }
 function saveSettings() {
-  settings.dataSource = document.getElementById("srcSelect").value;
-  settings.pollInterval = Math.max(5, parseInt(document.getElementById("pollInput").value) || 10);
+  settings.dataSource = modalInputs.srcSelect.value;
+  settings.pollInterval = Math.min(300, Math.max(5, parseInt(modalInputs.pollInput.value) || 10));
   try { localStorage.setItem("jjtrader_settings", JSON.stringify(settings)); } catch (e) {}
   closeSettings();
   startPolling();
@@ -895,8 +1110,7 @@ async function testConn() {
   box.style.color = "#94a3b8";
   box.textContent = "Testing...";
   try {
-    const h = { "Content-Type": "application/json", "x-api-key": apiKey() };
-    const res = await fetch("https://api.gold-api.com/price/XAU", { headers: h });
+    const res = await fetch(spotUrl("XAU"), { headers: apiHeaders() });
     const body = await res.text();
     box.style.color = res.ok ? "#22c55e" : "#ef4444";
     box.textContent = (res.ok ? "SUCCESS" : "FAILED") + " (" + res.status + ")\n" + body.slice(0, 300);
@@ -905,6 +1119,25 @@ async function testConn() {
     box.textContent = "CONNECTION ERROR:\n" + e.message;
   }
 }
+
+// ── Modal behavior: Esc, backdrop click, focus trap ────
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && modalInputs.overlay && modalInputs.overlay.classList.contains("open")) {
+    closeSettings();
+  }
+});
+document.getElementById("overlay").addEventListener("click", (e) => {
+  if (e.target === e.currentTarget) closeSettings();
+});
+document.getElementById("settingsModal").addEventListener("keydown", (e) => {
+  if (e.key !== "Tab") return;
+  const focusables = [...modalInputs.modal.querySelectorAll("button, select, input")]
+    .filter(el => !el.disabled && el.offsetParent !== null);
+  if (!focusables.length) return;
+  const first = focusables[0], last = focusables[focusables.length - 1];
+  if (e.shiftKey && document.activeElement === first) { last.focus(); e.preventDefault(); }
+  else if (!e.shiftKey && document.activeElement === last) { first.focus(); e.preventDefault(); }
+});
 </script>
 </body>
 </html>
